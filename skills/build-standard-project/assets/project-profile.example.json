@@ -1,0 +1,83 @@
+{
+  "schemaVersion": "1.1.0",
+  "project": {
+    "name": "example-product",
+    "displayName": "Example Product",
+    "packageScope": "example",
+    "description": "Replace with the approved one-line product positioning."
+  },
+  "product": {
+    "phase": "MVP",
+    "sourceOfTruth": "docs/product/README.md",
+    "locales": ["en", "zh-CN"],
+    "defaultLocale": "en"
+  },
+  "runtime": {
+    "node": "24.18.0",
+    "pnpm": "9.15.0",
+    "typescript": "5.9.3"
+  },
+  "web": {
+    "enabled": true,
+    "next": "16.2.12",
+    "react": "19.2.8",
+    "tailwind": "4.3.3",
+    "designSystem": "shadcn/ui + Radix + project tokens"
+  },
+  "api": {
+    "enabled": true,
+    "nest": "11.1.28",
+    "adapter": "fastify",
+    "basePath": "/api/v1"
+  },
+  "data": {
+    "database": "postgresql",
+    "databaseVersion": "18",
+    "prisma": "7.9.0"
+  },
+  "apps": {
+    "admin": false,
+    "worker": false
+  },
+  "async": {
+    "mode": "none",
+    "redis": false
+  },
+  "storage": {
+    "mode": "s3-compatible"
+  },
+  "auth": {
+    "mode": "adapter-deferred"
+  },
+  "deployment": {
+    "mode": "container-generic",
+    "environments": ["development", "staging", "production"]
+  },
+  "review": {
+    "aiRequired": true,
+    "humanRequired": false,
+    "independence": "separate-agent-or-fresh-context",
+    "blockingSeverities": ["blocker", "high"]
+  },
+  "quality": {
+    "unit": "active",
+    "integration": "active",
+    "contract": "active",
+    "migration": "active",
+    "e2e": "active",
+    "crossBrowser": "active",
+    "accessibility": "active",
+    "visual": "active",
+    "security": "active"
+  },
+  "decisions": [
+    {
+      "id": "ADR-001",
+      "status": "accepted",
+      "classification": "default",
+      "decision": "Use a modular monolith",
+      "reason": "The MVP has no proven independent deployment or scaling boundary.",
+      "revisitWhen": "Measured workload, ownership, or isolation requires independent deployment."
+    }
+  ]
+}

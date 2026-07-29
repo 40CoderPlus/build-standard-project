@@ -1,0 +1,4 @@
+interface:
+  display_name: "Standard Project Builder"
+  short_description: "Generate AI-reviewed deployable full-stack projects"
+  default_prompt: "Use $build-standard-project to turn an approved product design into a traced, AI-reviewed, deployable standard project."

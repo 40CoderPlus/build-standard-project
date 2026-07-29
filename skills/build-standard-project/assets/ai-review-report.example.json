@@ -1,0 +1,43 @@
+{
+  "schemaVersion": "1.1.0",
+  "requirementId": "REQ-001",
+  "acceptanceIds": ["AC-001"],
+  "reviewer": {
+    "agent": "independent-ai-reviewer",
+    "model": "record-the-actual-model",
+    "mode": "separate-agent",
+    "sessionId": "review-session-id",
+    "implementationSessionId": "different-implementation-session-id"
+  },
+  "change": {
+    "diffId": "git-diff-hash-or-local-content-hash-from-pnpm-review-fingerprint",
+    "contentHash": "content-hash-from-pnpm-review-fingerprint",
+    "baseSha": "full-reviewed-base-sha-when-using-git-mode",
+    "headSha": "full-reviewed-head-sha-when-using-git-mode",
+    "gitDiffHash": "binary-git-diff-hash-when-using-git-mode",
+    "files": ["every/material/current-changed-file.ts"],
+    "deletedFiles": ["every/material/deleted-file.ts"]
+  },
+  "checks": [
+    {
+      "command": "pnpm quality",
+      "result": "pass",
+      "evidence": "Record exact, truthful output or artifact reference."
+    }
+  ],
+  "findings": [
+    {
+      "severity": "low",
+      "status": "accepted",
+      "title": "Example only; replace with an actual finding or remove it",
+      "evidence": "File/line and observed behavior.",
+      "locations": ["path/to/file.ts:1"],
+      "rule": "Rule or AC ID",
+      "impact": "Bounded impact.",
+      "recommendedAction": "Concrete next action."
+    }
+  ],
+  "verdict": "pass_with_followups",
+  "generatedAt": "2026-01-01T00:00:00.000Z",
+  "completedAt": "2026-01-01T00:00:00.000Z"
+}

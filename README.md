@@ -45,7 +45,8 @@ Windows PowerShell：
 ```powershell
 python "$env:USERPROFILE\.codex\skills\.system\skill-installer\scripts\install-skill-from-github.py" `
   --repo 40CoderPlus/build-standard-project `
-  --path skills/build-standard-project
+  --path skills/build-standard-project `
+  --ref v1.1.0
 ```
 
 macOS / Linux：
@@ -53,7 +54,8 @@ macOS / Linux：
 ```bash
 python3 "${CODEX_HOME:-$HOME/.codex}/skills/.system/skill-installer/scripts/install-skill-from-github.py" \
   --repo 40CoderPlus/build-standard-project \
-  --path skills/build-standard-project
+  --path skills/build-standard-project \
+  --ref v1.1.0
 ```
 
 官方 Installer 在目标目录已存在时会停止，不会覆盖当前版本。升级已有安装时使用下面的仓库安装脚本。

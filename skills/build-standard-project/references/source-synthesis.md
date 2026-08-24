@@ -32,5 +32,5 @@ This standard extracts reusable engineering lessons from three repositories whil
 - Use the strongest shared safety and quality rule.
 - Keep architecture additions conditional rather than making the default stack maximal.
 - Keep product truth, business constants, content authority, and AI permissions outside the reusable template.
-- Prefer one canonical rule source, explicit decision records, exact validation evidence, and a minimal modular monolith.
+- Prefer one canonical rule source, explicit decision records, exact validation evidence, and product-fit architecture options. Recommend the smallest credible option but preserve the user's technology/deployment decision.
 - Make AI review mandatory for pure-AI delivery while keeping human review optional unless external authority requires it.

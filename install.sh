@@ -29,7 +29,7 @@ if ! cp -R "$SOURCE" "$TARGET"; then
   exit 1
 fi
 
-printf '%s\n' "Installed build-standard-project 1.1.0 to $TARGET"
+printf '%s\n' "Installed build-standard-project 1.6.0 to $TARGET"
 if [ -n "$BACKUP" ]; then
   printf '%s\n' "Previous installation backed up to $BACKUP"
 fi

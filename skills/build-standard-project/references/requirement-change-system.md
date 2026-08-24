@@ -1,6 +1,6 @@
 # Requirement change system
 
-Persist every new feature, optimization, behavior change, deprecation, or removal before implementation.
+Use this system for initialization baselines, new features, product-significant/high-risk behavior, deprecations/removals with compatibility impact, and release-tracked work. Routine bug fixes, small optimizations, UI adjustments, and refactors do not require a requirement record unless the user or repository explicitly asks for one.
 
 ## Canonical artifacts
 
@@ -43,7 +43,7 @@ Each record must include:
 - AI review report and finding resolutions;
 - release version and post-release verification.
 
-## Change workflow
+## Traced change workflow
 
 1. Search for an existing requirement and extend or supersede it; do not create a parallel truth.
 2. Classify impact: `patch`, `minor`, `major`, or `locked-decision`.
@@ -51,7 +51,7 @@ Each record must include:
 4. Implement the smallest vertical slice.
 5. Update contracts, migrations, docs, tests, and operational evidence in the same change.
 6. Run `pnpm validate:requirements`.
-7. Run mandatory AI review and attach the report.
+7. Run independent AI review and attach the report when the selected route requires it.
 8. Mark `accepted` only after criteria and gates pass.
 9. Mark `released` and `verified` only with deployment and smoke evidence.
 

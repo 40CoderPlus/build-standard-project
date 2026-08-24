@@ -1,76 +1,68 @@
 # Deployment system
 
-Provide a fast local path and a reproducible production path without assuming a specific cloud.
+Deployment follows the user-approved architecture; it is not fixed to containers or a particular cloud.
 
-## Generated assets
+## Choose with the architecture
+
+Compare viable deployment models before generating assets:
+
+| Model | Typical fit | Operational burden | Important tradeoffs |
+| --- | --- | --- | --- |
+| Managed/serverless platform | Lean apps, small teams, fast delivery | Low | Provider limits, lock-in, cold starts, quotas |
+| Generic containers | Portable modular applications and known runtime needs | Medium | Image/registry/runtime operations |
+| Managed container service | Services/workers needing independent scaling without cluster ownership | Medium | Provider-specific networking and pricing |
+| Orchestrated containers | Many services, strict isolation, platform team, advanced availability | High | Cluster, networking, observability, upgrade burden |
+
+Recommend one using product traffic, runtime, availability, compliance, budget, team, and target provider. Do not generate deployment assets until the user approves the model or explicitly delegates the choice.
+
+## Common runtime contract
+
+Generate only capabilities relevant to the selected model:
+
+- liveness/readiness or platform-equivalent health signals;
+- configuration validation and secret separation;
+- graceful shutdown where the runtime supports long-lived processes;
+- an explicit migration procedure before incompatible traffic;
+- smoke tests and observable startup/dependency failures;
+- rollback or forward-recovery instructions proportional to data risk.
+
+## Managed/serverless path
+
+Use provider-native configuration, preview/staging environments, managed database/storage/jobs, and deployment checks. Do not add Docker, Compose, Kubernetes, Redis, or queues solely for portability. Document quotas, regions, cold-start/runtime limits, backup/recovery ownership, and an exit path for material lock-in.
+
+## Container path
+
+When containers are selected, generate only the enabled application images and relevant local dependencies:
 
 ```text
 docker/
-  Dockerfile.web
-  Dockerfile.api
-  Dockerfile.worker
-  docker-compose.dev.yml
-  docker-compose.release.yml
+  Dockerfile.<enabled-app>
+  docker-compose.dev.yml       # only when useful locally
+  docker-compose.release.yml   # only for the selected release model
 scripts/deploy/
-  preflight.mjs
-  smoke-test.mjs
-  verify-recovery.mjs
 docs/engineering/deployment.md
-.github/workflows/release.yml
 ```
 
-Generate only the app images enabled by the project profile.
+Use multi-stage builds, frozen lockfiles, non-root runtime users, immutable tags, SBOM/vulnerability evidence, health checks, and secrets outside images. Keep hot reload available without rebuilding containers for every source edit.
 
-## Local development
+## Orchestrated/high-assurance path
 
-Use Compose for PostgreSQL and conditional S3/MinIO or Redis dependencies. Keep application hot reload available through normal `pnpm dev`; do not require rebuilding application containers for every source edit.
-
-Provide:
-
-- one dependency bootstrap command;
-- deterministic ports and fake local credentials;
-- health checks;
-- idempotent database setup;
-- a documented cleanup command that targets only project resources.
-
-## Production containers
-
-- Use multi-stage builds and frozen lockfile installation.
-- Run as a non-root user.
-- Keep runtime images free of source-only credentials and development tools where practical.
-- Use immutable image tags containing version and commit SHA.
-- Generate an SBOM and vulnerability evidence for release images.
-- Never bake `.env` or secrets into images.
-
-## Runtime contract
-
-Provide:
-
-- API liveness and readiness endpoints;
-- Web health endpoint;
-- dependency readiness without exposing secrets;
-- graceful shutdown;
-- explicit migration step before traffic switch;
-- structured startup failure when configuration is invalid.
+Add orchestration, autoscaling, service isolation, multi-region, policy enforcement, or disaster-recovery automation only when approved objectives justify them and operational ownership exists. Record capacity assumptions, failure domains, consistency tradeoffs, runbooks, observability, upgrade responsibilities, and cost controls.
 
 ## Release workflow
 
-The release workflow must:
+The selected release workflow must:
 
-1. run `quality:full`;
-2. validate the mandatory AI review report;
-3. build and scan images;
-4. publish immutable images;
-5. run migration preflight and backup/recovery checks;
-6. deploy to the selected environment;
-7. run health and product smoke tests;
-8. record version, images, migration, review report, and results;
-9. roll back traffic or execute forward recovery on failure.
+1. run applicable `quality:full` gates and validate required review evidence;
+2. build/package immutable release artifacts appropriate to the platform;
+3. run migration, backup, and recovery preflight proportional to data risk;
+4. deploy to the user-approved target;
+5. verify health and product smoke tests;
+6. record version, artifacts, migration, review, and results;
+7. roll back traffic or execute forward recovery on failure.
 
-For the generic container profile, the generated workflow produces tested, SBOM-backed, vulnerability-scanned release-candidate images. It must not claim an unspecified production platform was deployed. Steps 5-9 belong to a target-specific deployment adapter generated after the platform is selected. Missing adapter or evidence is a production blocker, not a reason to invent credentials or require human code review.
-
-Production deployment remains an external side effect and requires user authorization. Human code review is not required by default.
+Do not claim deployment to an unspecified platform. Production deployment is an external side effect and requires user authorization.
 
 ## Provider adaptation
 
-Use `container-generic` as the portable baseline. Add a provider adapter only after the deployment target is known. Keep provider-specific credentials and commands outside domain/application code.
+Generate a provider adapter only after the target is selected. Keep provider credentials and SDKs outside domain/application code. If the target is deliberately deferred, generate portable interfaces and decision triggers rather than pretending a generic container is the user's choice.

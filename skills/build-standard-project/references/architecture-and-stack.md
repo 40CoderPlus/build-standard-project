@@ -1,98 +1,36 @@
-# Architecture and stack
+# Architecture selection
 
-## Standard topology
+Choose from product evidence, not template completeness.
 
-```text
-Browser
-  → Next.js Web/Admin
-  → NestJS modular-monolith REST API
-  → PostgreSQL
-  → S3-compatible object storage
-  → Worker for background jobs
-```
+## Inputs
 
-Use a pnpm + Turborepo monorepo:
+Use approved materials to infer phase, domain complexity, users/traffic, data risk, latency/availability, background/realtime/search/media needs, budget, team/operations, compliance, recovery, and hosting constraints. Use ranges when uncertain; batch only decision-changing gaps once.
 
-```text
-apps/
-  web/
-  api/
-  worker/       # conditional
-  admin/        # conditional
-packages/
-  config/
-  contracts/
-  domain/
-  db/
-  ui/
-  observability/
-  testkit/
-  sdk/          # conditional
-  redis/        # conditional
-docs/
-  product/
-  architecture/
-  engineering/
-```
+## Options
 
-Apps must not import another app's source. Shared code belongs in packages. Keep dependency direction toward pure contracts/domain packages.
+Present two options by default:
 
-## Web
+- **Minimum sufficient (recommended):** one deployable application and managed services where practical. No separate API, worker, queue, Redis, containers, monorepo, or orchestration unless required.
+- **Next justified:** a modular application/API and only the extra data/async/deployment components supported by real requirements.
 
-- Use Next.js App Router, React, TypeScript, Tailwind CSS, and shadcn/ui/Radix.
-- Default to React Server Components. Push `"use client"` to the smallest browser-interaction boundary.
-- Use a shared API client; do not scatter raw `fetch`, paths, errors, cookies, CSRF, or request IDs through components.
-- Keep server authority out of global client state. Prefer server data, local React state, and explicit browser adapters.
-- Release browser resources: streams, audio nodes, object URLs, animation frames, observers, and listeners.
-- Use design tokens rather than page-local colors, spacing, type, radii, shadows, or z-index values.
+Present a **complex/high-assurance** third option only when requirements already demand independent scaling/isolation, regional or availability guarantees, heavy async/realtime/search, or genuine multi-team ownership. Complexity is not a future-proofing default.
 
-## API and domain
+Compare only: product fit, topology, deployment, delivery speed, operating cost, main limit/risk, and upgrade trigger. Recommend the minimum option that meets approved requirements.
 
-- Use REST `/api/v1` and OpenAPI.
-- Controller: HTTP mapping, validated DTO, response metadata.
-- Application: use cases, authorization after authentication, transaction, idempotency, audit.
-- Domain: entities, value objects, policies, state machines, errors; no NestJS or Prisma dependency.
-- Infrastructure: Prisma repositories and provider adapters.
-- Do not let one module write another module's tables directly.
-- Expose stable wire contracts, not persistence models.
-- Use RFC 9457 Problem Details or one equally consistent documented error contract.
+## User choice and ownership
 
-## Data
+Before scaffolding, obtain one explicit choice covering topology, data/storage, optional async/realtime/search, and deployment. Do not implement a complex option or component without explicit selection.
 
-- Default to UUIDv7 or a documented sortable UUID policy, UTC timestamps, explicit uniqueness and indexed foreign keys.
-- Use integer minor units for money and basis points for ratios.
-- Put state transitions behind domain commands; record actor, reason, old/new state, time, and rule/config snapshot.
-- Use append-only correction/reversal records for financial, points, score, audit, and published-revision facts when present.
-- Apply every schema change through a migration. Use expand → backfill → switch → contract for destructive evolution.
-- Do not perform external calls inside a database transaction.
+After material costs, limits, and risks are stated, the user owns the chosen product/architecture/operations tradeoff. AI remains responsible for truthful disclosure and correct implementation; user ownership does not permit hidden known risk, fabricated evidence, or safety/legal bypasses.
 
-## Background work
+If the user says “you decide,” choose the minimum sufficient option and record `user-delegated`. Otherwise record `user-approved`. Do not reopen the decision without new evidence.
 
-Choose the lowest sufficient tier:
+## Complexity triggers
 
-1. **No worker**: request-bound work is short, local, and safely retryable.
-2. **PostgreSQL Job**: bounded background work; claim with leases and `SKIP LOCKED`, run providers outside the claim transaction, retry with backoff, then dead-letter.
-3. **Transactional Outbox + queue**: durable external delivery or independent consumers are required. Commit business state and outbox atomically; make consumers idempotent.
+- Separate API: multiple clients, public/integration contract, independent backend boundary, or real team ownership.
+- Worker/queue: work exceeds request limits or needs durable retry/delivery/burst handling.
+- Redis/cache: measured latency/load, rate limit, or short-lock need; never business truth.
+- Search engine: relational/full-text search cannot meet proven relevance, language, scale, or latency needs.
+- Microservices/orchestration/multi-region: explicit isolation, independent scaling/ownership, availability, latency, residency, or recovery objectives justify their operating cost.
 
-Redis may provide cache, rate limits, and short locks. It never owns balances, permissions, publication, audit, or other business truth.
-
-## Storage and uploads
-
-- Generate object keys server-side.
-- Use presigned upload intents and completion confirmation.
-- Verify existence, size, media type, hash, scan status, rights, review, and publication state.
-- Prefer one bucket with fixed `temp/`, `private/`, `quarantine/`, `published/`, and `archive/` prefixes unless infrastructure requires stronger isolation.
-- Public URL availability never substitutes for authorization or publication status.
-
-## Escalation triggers
-
-Require an ADR before adding:
-
-- microservices or independent database ownership;
-- Kafka, Kubernetes, distributed saga, GraphQL, or OpenSearch;
-- a global client state library;
-- a second source of product configuration;
-- a new authentication framework or provider;
-- a new AI provider/model class;
-- a second object-storage authority;
-- runtime dependency on experimental/preview features.
+Across stacks, keep secrets and private infrastructure out of browsers, validate external input, use stable contracts and migrations, and make authorization, idempotency, audit, and recovery proportional to risk.

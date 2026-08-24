@@ -17,8 +17,10 @@ Capture:
 9. Supported locales, source copy, accessibility target, viewports, weak-network and offline behavior.
 10. Design-system tokens, approved high-fidelity screens, interaction prototype, and responsive rules.
 11. Product metrics and analytics governance.
-12. Deployment, compliance, recovery, and operational ownership.
+12. Expected users/traffic, latency/availability objectives, growth uncertainty, budget, deadline, team skills, deployment target, compliance, recovery, and operational ownership.
 13. AI review independence, required evidence, finding severity, and exception policy.
+
+Before scaffolding, normally present the minimum sufficient option and at most one justified upgrade, then obtain one user decision. Show a complex third option only when approved requirements already require it. Infer from approved inputs first and batch only architecture-changing gaps. Missing forecasts may remain ranges; missing user approval may not be treated as a default architecture decision.
 
 ## Authority order
 

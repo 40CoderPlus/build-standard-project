@@ -15,17 +15,19 @@ A generated standard project must include:
 - `docs/engineering/quality-gates.md`: checks and release evidence.
 - `docs/architecture/decisions/`: ADRs for non-default or deferred choices.
 - `artifacts/ai-review/`: schema-valid mandatory AI review reports.
-- `docker/`, deployment scripts, health/readiness endpoints, smoke tests, and recovery instructions.
+- deployment configuration for the user-selected model, health/readiness equivalents, smoke tests, and proportional recovery instructions. Container files are required only when a container option was selected.
 - `.github/pull_request_template.md`: AI review evidence required; human review optional.
 - `.env.example`: names and fake values only.
-- pinned runtime/package manager, lockfile after install, workspace, TypeScript, lint, format, test, and CI configuration.
-- app/package boundaries selected by the profile.
+- pinned runtime/package-manager/dependency resolution and the selected ecosystem's lint, format, test, and CI configuration.
+- app/package boundaries selected by the approved profile; do not generate unused applications or infrastructure packages.
 
-## Minimum source layout
+## Source layout examples
+
+The physical layout follows the selected topology. A modular-monolith option may use:
 
 ```text
-apps/web
-apps/api
+apps/web                      # when a separate Web deployment exists
+apps/api                      # only when the selected option has a separate API
 apps/worker                 # if async work exists
 apps/admin                  # if operator separation is justified
 packages/config
@@ -38,6 +40,8 @@ packages/testkit
 packages/sdk                # when multiple consumers need a generated client
 packages/redis              # when profile enables Redis
 ```
+
+A lean single-application option does not need empty `apps/api`, `apps/worker`, infrastructure packages, or Turborepo. A scaled option may add deployables only for approved isolation, scaling, or ownership boundaries.
 
 ## Generated acceptance
 
@@ -52,7 +56,7 @@ The foundation is accepted when:
 7. secrets, private data, provider keys, and server infrastructure cannot enter the browser bundle;
 8. requirement, acceptance, implementation, tests, review, and release evidence share stable IDs;
 9. an independent AI review has no unresolved blocker/high findings;
-10. `quality:full` and deployment preflight are executable;
+10. `quality:full` and the selected deployment preflight are executable;
 11. exact validation evidence is reported.
 
 The first initialization sequence is `pnpm install`, `pnpm format`, then `pnpm quality`. Formatting is an explicit one-time normalization step because the deterministic generator does not depend on an already-installed JavaScript toolchain.

@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "1.1.0",
+  "schemaVersion": "1.3.0",
   "project": {
     "name": "example-product",
     "displayName": "Example Product",
@@ -11,6 +11,21 @@
     "sourceOfTruth": "docs/product/README.md",
     "locales": ["en", "zh-CN"],
     "defaultLocale": "en"
+  },
+  "architecture": {
+    "selectionStatus": "pending-user-choice",
+    "selectionMode": null,
+    "selectedOption": null,
+    "consideredOptions": [
+      {
+        "id": "lean-managed",
+        "fit": "Replace with product-specific evidence, costs, limits, and upgrade path."
+      },
+      {
+        "id": "modular-monolith",
+        "fit": "Replace with product-specific evidence, costs, limits, and upgrade path."
+      }
+    ]
   },
   "runtime": {
     "node": "24.18.0",
@@ -50,11 +65,13 @@
     "mode": "adapter-deferred"
   },
   "deployment": {
+    "selectionStatus": "pending-user-choice",
     "mode": "container-generic",
     "environments": ["development", "staging", "production"]
   },
   "review": {
     "aiRequired": true,
+    "aiRequiredFor": ["init", "release", "high-risk", "product-significant"],
     "humanRequired": false,
     "independence": "separate-agent-or-fresh-context",
     "blockingSeverities": ["blocker", "high"]
@@ -73,10 +90,10 @@
   "decisions": [
     {
       "id": "ADR-001",
-      "status": "accepted",
-      "classification": "default",
+      "status": "proposed",
+      "classification": "candidate",
       "decision": "Use a modular monolith",
-      "reason": "The MVP has no proven independent deployment or scaling boundary.",
+      "reason": "Illustrative candidate only; compare product-fit options and obtain the user's decision.",
       "revisitWhen": "Measured workload, ownership, or isolation requires independent deployment."
     }
   ]

@@ -39,7 +39,7 @@ catch {
     throw
 }
 
-Write-Host "Installed build-standard-project 1.1.0 to $target"
+Write-Host "Installed build-standard-project 1.6.0 to $target"
 if ($backup) {
     Write-Host "Previous installation backed up to $backup"
 }

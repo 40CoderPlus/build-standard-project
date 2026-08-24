@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Create a deterministic standard-project foundation from a JSON profile."""
+"""Create the modular-monolith/container foundation from a user-approved profile."""
 
 from __future__ import annotations
 
@@ -126,6 +126,7 @@ def create_root(profile: dict[str, Any]) -> None:
         "lint:fix": "eslint . --fix --max-warnings=0",
         "typecheck": "tsc --noEmit && turbo run typecheck",
         "test": "vitest run --coverage",
+        "quality:fast": "pnpm test",
         "test:browser:prepare": f"pnpm --filter @{scope}/web build",
         "migration:check": "node scripts/quality/check-migrations.mjs",
         "migration:deploy": f"pnpm --filter @{scope}/db migrate:deploy",
@@ -948,42 +949,31 @@ def create_docs(profile: dict[str, Any]) -> None:
         "AGENTS.md",
         f"""# {project['displayName']} repository instructions
 
-This is the canonical instruction source for humans and AI coding tools.
+This is the canonical instruction source.
 
-## Read before changing anything
+## Route
 
-1. `docs/product/README.md`
-2. The task-relevant record under `docs/requirements/`
-3. The task-relevant architecture/API/data/engineering document
-4. The approved design system, high-fidelity screen, and interaction flow
+The Routine path is the default for scoped fixes, optimizations, UI changes, and refactors. Read only relevant code, tests, contracts, and instructions. Use Full only for initialization, release, or affected security/privacy, money/data, migration/public-contract, shared-infrastructure, deployment, or product-AI boundaries.
 
-If authoritative sources conflict, report `BASELINE_GAP`; do not invent a product rule.
+## Execute
 
-## Required behavior
+- Treat efficiency as part of quality. Do safe in-scope work without an upfront plan, repeated confirmation, or step narration. Batch one question only when a decision materially changes behavior, architecture, cost, or risk.
+- Preserve unrelated work and make the smallest coherent change.
+- `.project/standard-project.json` records the user's technology/deployment choice. Prefer minimum sufficient design; never add complex infrastructure without explicit user selection. After material risks are disclosed, the user owns the approved product/architecture/operations tradeoff.
+- Read task-relevant product/engineering documents only when the affected boundary requires them. Do not invent product rules.
+- Keep browser code away from databases/secrets, validate external input, enforce authorization server-side, and protect real secrets/private data.
+- Do not perform destructive Git/filesystem actions, commits, pushes, deployments, or external writes without authorization.
 
-- Inspect repository state and preserve unrelated user changes.
-- Make the smallest coherent change; reuse existing contracts, domain rules, tokens, providers, IDs, clocks, and fixtures.
-- Keep apps isolated; put shared code in packages.
-- Update behavior, contracts, migrations, documentation, traceability, and tests together.
-- Assign a stable REQ/OPT ID before changing behavior and map acceptance criteria to implementation and tests.
-- Keep controllers thin, domain rules framework-independent, and provider/database code behind adapters.
-- Validate boundary input at runtime. Do not expose Prisma types as public contracts or UI props.
-- Keep browser code away from databases, secrets, server configuration, and private infrastructure SDKs.
-- Enforce authorization server-side. Record idempotency, concurrency, audit, and stable errors for writes.
-- Do not weaken tests, security, privacy, moderation, accessibility, provenance, or quality gates.
-- Do not read or expose real secrets or unnecessary production/user data.
-- Do not run destructive Git/filesystem operations, stage, commit, push, deploy, or make external writes without explicit authorization.
-- Report exact validation commands and results; never fabricate a pass.
-- Require an independent AI review report for every material change. Resolve blocker/high findings before acceptance or deployment.
-- Keep human review optional and non-blocking unless explicit user instruction or external authority requires it.
+## Validate
 
-## Product and AI boundaries
+- Routine: review the final diff and run the narrowest relevant unit test or `pnpm quality:fast`. No REQ/OPT, independent review artifact, aggregate gate, E2E/visual suite, or deployment evidence by default.
+- Add process or checks beyond this quality floor only for an affected risk or explicit user request.
+- Full: use traceability, directly affected gates, and independent review only as required. Run `pnpm quality:full` only for high-risk/release readiness.
+- Do not rerun unaffected successful checks or fabricate evidence. Keep human review optional unless explicitly required.
 
-Product invariants belong in `docs/product/README.md`. AI output is an untrusted candidate and requires approved inputs, provenance, review, lifecycle, fallback, and audit. Provider failure is never PASS. Display/publication consent never implies training consent.
+## Finish
 
-## Completion
-
-Run the smallest relevant checks followed by `pnpm quality:full`. Handoff must include requirement/acceptance IDs, outcome, files/behavior changed, migrations/configuration, commands and results, AI review report and findings, deployment/recovery evidence, untested areas, risks, and next safe action.
+Stop when proportionate checks pass. Report only outcome, key evidence, and material risk or required user action.
 """,
     )
     write(
@@ -1023,6 +1013,8 @@ Status: `BASELINE_GAP` until approved product inputs replace this scaffold.
 
 Profile: `.project/standard-project.json`
 
+- User-selected option: {profile['architecture']['selectedOption']} (`{profile['architecture']['selectionMode']}`).
+- Deployment: {profile['deployment']['mode']} (`{profile['deployment']['selectionStatus']}`).
 - Monorepo: pnpm + Turborepo.
 - Web: Next.js App Router + React.
 - API: NestJS {profile['api']['adapter']} REST `{profile['api']['basePath']}`.
@@ -1032,7 +1024,7 @@ Profile: `.project/standard-project.json`
 - Storage: {profile['storage']['mode']}.
 - Auth: adapter boundary; selected mode `{profile['auth']['mode']}`.
 
-Keep a modular monolith until an approved ADR proves an independent deployment boundary. Add detailed module, data, state, provider, upload, and failure-flow diagrams with the first vertical slice.
+This repository implements the approved modular-monolith/container option. Revisit it only when the recorded trigger is met and the user approves a different option. Add detailed module, data, state, provider, upload, and failure-flow diagrams with the first vertical slice.
 """,
     )
     write(
@@ -1042,7 +1034,7 @@ Keep a modular monolith until an approved ADR proves an independent deployment b
 
 Use strict TypeScript, runtime validation, stable contracts, migration-only schema changes, structured logs, explicit configuration validation, and Conventional Commits.
 
-Root gates: `pnpm quality` for non-browser checks and `pnpm quality:full` for AI handoff/release. The full gate includes requirement and Agent validation, integration, browser, accessibility, visual, security, AI review, and deployment preflight.
+Root gates: `pnpm quality:fast` for routine unit-test feedback, `pnpm quality` for initialization/broad non-browser checks, and `pnpm quality:full` for high-risk/release readiness. The full gate includes requirement and Agent validation, integration, browser, accessibility, visual, security, AI review, and deployment preflight.
 
 Never use empty success scripts for deferred gates. Activate integration, browser, accessibility, visual, and security gates according to `.project/standard-project.json`.
 """,
@@ -1052,11 +1044,13 @@ Never use empty success scripts for deferred gates. Activate integration, browse
         "docs/engineering/ai-rules.md",
         """# AI rules
 
-Development AI must read `AGENTS.md` and the REQ/OPT record, preserve user work, make surgical changes, synchronize contracts/docs/tests, protect secrets, and report validation honestly.
+Development AI must read `AGENTS.md`, preserve user work, make surgical changes, synchronize directly affected contracts/docs/tests, protect secrets, and report validation honestly. Read a REQ/OPT record only when the selected route requires one.
+
+Keep interaction lean: act on safe local work, batch material questions once, omit internal deliberation/process narration, and do not reopen decisions or repeat checks without new evidence.
 
 Product AI is disabled until an approved capability contract defines inputs, prohibited data, provider/model, provenance, hashes, review, lifecycle, fallback, audit, consent, incident response, and publication rules.
 
-Every material change requires an independent AI review report with no unresolved blocker/high findings. Human review is optional for ordinary VibeCoding and is not a default merge blocker.
+Routine changes use a focused final-diff review plus relevant unit tests. Initialization, releases, and product-significant/high-risk changes require an independent AI review report with no unresolved blocker/high findings. Human review is optional for ordinary VibeCoding and is not a default merge blocker.
 """,
     )
     write(
@@ -1064,7 +1058,7 @@ Every material change requires an independent AI review report with no unresolve
         "docs/engineering/quality-gates.md",
         """# Quality gates
 
-Quality is a merge condition. Validate behavior, invariants, permissions, failures, recovery, accessibility, privacy, security, and operational readiness.
+Use proportional validation. Routine changes require a focused final-diff review and relevant unit tests. Add checks only for boundaries the change actually affects.
 
 The first product slice must add unit, integration, API/contract, migration, E2E, accessibility, responsive visual, provider-failure, requirement-traceability, and AI-review evidence as applicable. Never reduce a threshold or skip a required suite to manufacture green CI.
 """,
@@ -1085,9 +1079,10 @@ def create_governance(profile: dict[str, Any]) -> None:
     project = profile["project"]
     adapter_body = (
         "Read and obey the root `AGENTS.md` in full before analysis or edits. "
-        "Then read `docs/product/README.md` and the task-relevant requirement under "
-        "`docs/requirements/`. `AGENTS.md` is the canonical rule source and wins on "
-        "conflict. Do not create tool-specific alternative rules.\n"
+        "For routine work, inspect only task-relevant code, tests, and contracts. "
+        "Read product and requirement baselines when the route in `AGENTS.md` requires them. "
+        "`AGENTS.md` is the canonical rule source and wins on conflict. "
+        "Do not create tool-specific alternative rules.\n"
     )
     write(ROOT, "CLAUDE.md", "# Claude repository adapter\n\n" + adapter_body)
     write(ROOT, "GEMINI.md", "# Gemini repository adapter\n\n" + adapter_body)
@@ -1109,11 +1104,11 @@ def create_governance(profile: dict[str, Any]) -> None:
         "docs/requirements/README.md",
         f"""# {project['displayName']} requirement ledger
 
-Every feature, optimization, behavior change, deprecation, or removal receives a stable `REQ-*` or `OPT-*` ID before implementation.
+Initialization baselines, new features, product-significant/high-risk behavior, compatibility-impacting deprecations/removals, and release-tracked work receive a stable `REQ-*` or `OPT-*` ID before implementation. Routine fixes, optimizations, UI adjustments, and refactors do not require one.
 
-Map requirement → acceptance criteria → affected contracts/modules → implementation → tests → AI review → release evidence. Run `pnpm validate:requirements` after every change.
+For traced work, map requirement → acceptance criteria → affected contracts/modules → implementation → tests → AI review → release evidence. Run `pnpm validate:requirements` when traced records change or as part of full validation.
 
-Human review is optional for ordinary VibeCoding. Independent AI review is mandatory for material changes.
+Human review is optional for ordinary VibeCoding. Independent AI review is mandatory for initialization, release, and product-significant/high-risk changes.
 """,
     )
     write(
@@ -1180,10 +1175,10 @@ Status: proposed
         ".github/pull_request_template.md",
         """# Pull request
 
-## Requirement
+## Route
 
-- REQ/OPT ID:
-- Acceptance IDs:
+- Routine / Full:
+- REQ/OPT and acceptance IDs (Full only):
 
 ## Change
 
@@ -1192,10 +1187,10 @@ Status: proposed
 
 ## Evidence
 
-- Automated checks:
-- AI review report:
-- Blocker/high findings resolved:
-- Deployment/smoke/recovery evidence:
+- Final-diff review:
+- Unit/targeted checks:
+- AI review and resolved blocker/high findings (Full only):
+- Deployment/smoke/recovery evidence (Release only):
 
 ## Human review
 
@@ -1286,7 +1281,7 @@ console.log(`Requirement traceability passed: ${ids.size} requirement(s).`);
 
 const adapters = ['CLAUDE.md', 'GEMINI.md', '.github/copilot-instructions.md', '.cursor/rules/project.mdc'];
 const canonical = await readFile('AGENTS.md', 'utf8');
-for (const phrase of ['Assign a stable REQ/OPT ID', 'Require an independent AI review report', 'pnpm quality:full', 'Keep human review optional']) {
+for (const phrase of ['Routine path is the default', 'pnpm quality:fast', 'pnpm quality:full', 'Keep human review optional']) {
   if (!canonical.includes(phrase)) throw new Error(`AGENTS.md is missing mandatory policy: ${phrase}`);
 }
 for (const file of adapters) {
@@ -2022,6 +2017,7 @@ def create_ci(profile: dict[str, Any]) -> None:
 on:
   pull_request:
   push:
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -2052,10 +2048,11 @@ jobs:
           node-version: {node}
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm quality
+      - run: pnpm quality:fast
 
   full:
     needs: quality
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 60
 {service_block.rstrip()}
@@ -2087,6 +2084,10 @@ def validate_profile(profile: dict[str, Any]) -> None:
         "project.name",
         "project.displayName",
         "project.packageScope",
+        "architecture.selectionStatus",
+        "architecture.selectionMode",
+        "architecture.selectedOption",
+        "architecture.consideredOptions",
         "runtime.node",
         "runtime.pnpm",
         "runtime.typescript",
@@ -2099,9 +2100,11 @@ def validate_profile(profile: dict[str, Any]) -> None:
         "async.redis",
         "storage.mode",
         "auth.mode",
+        "deployment.selectionStatus",
         "deployment.mode",
         "deployment.environments",
         "review.aiRequired",
+        "review.aiRequiredFor",
         "review.humanRequired",
         "review.independence",
         "review.blockingSeverities",
@@ -2114,6 +2117,19 @@ def validate_profile(profile: dict[str, Any]) -> None:
         fail("project.name must use lowercase letters, digits, and single hyphens")
     if not SCOPE_RE.fullmatch(scope):
         fail("project.packageScope must use lowercase letters, digits, and single hyphens")
+    architecture = profile["architecture"]
+    if architecture["selectionStatus"] != "approved":
+        fail("architecture selection is pending; present product-fit options and obtain the user's decision before scaffolding")
+    if architecture["selectionMode"] not in {"user-approved", "user-delegated"}:
+        fail("architecture.selectionMode must be user-approved or explicitly user-delegated")
+    if not isinstance(architecture["consideredOptions"], list) or len(architecture["consideredOptions"]) < 2:
+        fail("architecture.consideredOptions must record at least two product-fit options")
+    if profile["deployment"]["selectionStatus"] != "approved":
+        fail("deployment selection is pending; obtain the user's deployment decision before scaffolding")
+    if architecture["selectedOption"] != "modular-monolith":
+        fail("this generator supports only the modular-monolith option; use a tailored generator for the user's selected architecture")
+    if profile["web"]["enabled"] is not True or profile["api"]["enabled"] is not True:
+        fail("the modular-monolith generator requires enabled Web and API applications")
     if profile["data"]["database"] not in {"postgresql", "mysql"}:
         fail("data.database must be postgresql or mysql")
     if profile["api"]["adapter"] not in {"fastify", "express"}:
@@ -2123,11 +2139,14 @@ def validate_profile(profile: dict[str, Any]) -> None:
     if profile["apps"]["worker"] and profile["async"]["mode"] == "none":
         fail("apps.worker requires a non-none async.mode")
     if profile["review"]["aiRequired"] is not True:
-        fail("review.aiRequired must be true for the v1.1 standard")
+        fail("review.aiRequired must be true for initialization, high-risk work, and releases")
+    required_review_scopes = {"init", "release", "high-risk", "product-significant"}
+    if not required_review_scopes.issubset(set(profile["review"]["aiRequiredFor"])):
+        fail("review.aiRequiredFor must cover init, release, high-risk, and product-significant work")
     if profile["review"]["humanRequired"] is not False:
         fail("review.humanRequired must default to false for VibeCoding")
     if profile["deployment"]["mode"] != "container-generic":
-        fail("deployment.mode must be container-generic unless the Skill adds a provider adapter")
+        fail("this generator supports only container-generic deployment; use a tailored generator for the user's selected deployment model")
 
 
 def main() -> None:

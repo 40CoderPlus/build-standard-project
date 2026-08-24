@@ -1,5 +1,12 @@
 # AI rules
 
+## Execution and communication
+
+- Do safe, in-scope local inspection, edits, and relevant tests without asking for confirmation.
+- Ask only for decisions that materially change product behavior, architecture, cost, or risk; batch them into one concise message with a recommended default.
+- Do not narrate internal deliberation, repeat plans, reopen settled decisions without new evidence, or rerun checks unaffected by later edits.
+- Lead handoffs with the outcome and retain only material evidence, caveats, and required next action.
+
 ## Development AI
 
 Before changing a repository:
@@ -18,7 +25,7 @@ Development AI must:
 - validate before claiming completion;
 - report exact commands, results, skipped checks, and remaining risk;
 - keep production writes, deployments, messages, permission changes, and other external effects inside explicit user authorization.
-- leave a traceable requirement record and request an independent AI review before acceptance.
+- create traceability and request independent AI review for initialization, release, product-significant, or high-risk work; use a focused final-diff review for routine changes.
 
 Development AI must not:
 
@@ -34,12 +41,13 @@ Development AI must not:
 
 ## AI review
 
+- Routine bug fixes, optimizations, UI adjustments, and small refactors default to an implementer review of the final diff plus relevant unit tests. They do not require a separate review artifact.
 - Treat the implementing agent and reviewing agent as separate roles.
 - Give the reviewer authoritative requirements, raw diff, affected files, and test evidence.
 - Do not leak expected findings or the implementer's preferred conclusion.
 - Block acceptance and deployment on unresolved blocker/high findings.
 - Re-run affected checks and review after fixes.
-- Keep human review optional for ordinary VibeCoding; AI review remains mandatory.
+- Keep human review optional for ordinary VibeCoding. Independent AI review is mandatory only for initialization, release, product-significant/high-risk work, or when explicitly requested.
 
 ## Product AI
 

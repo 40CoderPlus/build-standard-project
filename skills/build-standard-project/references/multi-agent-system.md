@@ -26,10 +26,12 @@ Run `pnpm validate:agent-rules` in CI to verify the adapters exist, point to `AG
 
 ## Agent execution protocol
 
+Do not require multi-agent execution for routine changes. A single implementing agent may perform the focused final-diff review and relevant unit tests. Use the roles below only for initialization, release, high-risk/product-significant work, or an explicitly requested independent review.
+
 Every implementing agent must:
 
 - identify its role as implementer or reviewer;
-- record the requirement ID;
+- record the requirement ID when the selected route requires traceability;
 - preserve repository state and user changes;
 - state assumptions and `BASELINE_GAP` items;
 - produce exact validation evidence;
@@ -54,4 +56,4 @@ Human input becomes blocking only when:
 - a locked product decision lacks authority;
 - production credentials, irreversible data loss, financial release, or another high-impact external action needs new authorization.
 
-Automated checks and mandatory AI review remain blocking regardless of human participation.
+Applicable automated checks remain blocking. Independent AI review is blocking only when the selected route requires it.

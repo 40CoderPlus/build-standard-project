@@ -1,25 +1,22 @@
 # build-standard-project
 
-面向纯 AI VibeCoding 的标准工程 Skill。它将已确认的产品设计、PRD、原型或架构说明转换为可开发、可测试、可审查、可部署和可恢复的全栈项目。
+面向 VibeCoding 的 Codex 工程 Skill：保留必要质量底线，同时避免把普通修复和优化升级成复杂工程流程。
 
-V1.1 的核心原则：
+V1.6 的核心原则：
 
-- 人工 Review 默认可选，不作为普通 VibeCoding 的阻塞条件；
-- 独立 AI Review 强制执行；
-- Blocker / High 未解决时禁止验收和发布；
-- 新需求、优化、废弃和删除必须先落入 REQ/OPT 需求账本；
-- 所有 Agent 共享根 `AGENTS.md`，避免不同模型各自解释规则；
-- AI Review 报告绑定需求、验收标准、base/head、完整 Git diff、当前文件与删除文件。
+- 普通 Bug、优化、UI 调整和重构默认走 Routine 快路径；
+- Routine 只要求最小完整改动、最终 diff 走查和最相关单元测试；
+- 只有明确的初始化、标准化或重建请求才走完整 Init；
+- 技术与部署方案根据产品特性选择，默认推荐最小充分方案；
+- Redis、队列、微服务、Kubernetes、多地域等复杂组件必须由用户明确选择；
+- 额外流程和验证必须有实际风险依据，效率本身也是质量的一部分。
 
-## 适用范围
+## 工作模式
 
-- 从产品设计或 PRD 创建标准项目；
-- 为现有项目补齐工程规则、AI 规则、质量门禁和部署能力；
-- 审计项目是否满足标准；
-- 升级既有标准项目；
-- 让 Codex、Claude Code、Gemini CLI、Cursor、GitHub Copilot 或其他编码 Agent 采用同一工程治理体系。
-
-默认技术基线为 pnpm Workspace、Turborepo、Next.js、React、TypeScript、NestJS、PostgreSQL 和 Prisma。Worker、Redis、队列、后台应用等仅在产品需求满足触发条件时启用。
+- **Routine（默认）**：Bug、优化、UI 修改、局部重构。
+- **Init / Adopt**：仅在用户明确要求初始化、标准化、接入或重建时执行完整流程。
+- **Audit**：只报告优先级明确的问题，不主动修改。
+- **Release**：发布或高风险变更按受影响边界增加验证，不重复 Init。
 
 ## 仓库结构
 
@@ -34,11 +31,11 @@ install.ps1
 install.sh
 ```
 
-真正的 Skill 位于 `skills/build-standard-project/`。仓库根目录只保存面向使用者的安装和开源说明，避免把 README、许可证等内容加载进 Agent Skill 上下文。
+真正的 Skill 位于 `skills/build-standard-project/`。仓库根目录只保存安装和开源说明。
 
 ## 安装到 Codex
 
-### 方法一：使用 Codex 官方 Skill Installer
+### 使用 Codex Skill Installer
 
 Windows PowerShell：
 
@@ -46,7 +43,7 @@ Windows PowerShell：
 python "$env:USERPROFILE\.codex\skills\.system\skill-installer\scripts\install-skill-from-github.py" `
   --repo 40CoderPlus/build-standard-project `
   --path skills/build-standard-project `
-  --ref v1.1.0
+  --ref main
 ```
 
 macOS / Linux：
@@ -55,12 +52,12 @@ macOS / Linux：
 python3 "${CODEX_HOME:-$HOME/.codex}/skills/.system/skill-installer/scripts/install-skill-from-github.py" \
   --repo 40CoderPlus/build-standard-project \
   --path skills/build-standard-project \
-  --ref v1.1.0
+  --ref main
 ```
 
-官方 Installer 在目标目录已存在时会停止，不会覆盖当前版本。升级已有安装时使用下面的仓库安装脚本。
+官方 Installer 在目标目录已存在时会停止。升级已有安装时使用仓库安装脚本。
 
-### 方法二：克隆并安装或升级
+### 克隆并安装或升级
 
 Windows PowerShell：
 
@@ -79,82 +76,65 @@ chmod +x install.sh
 ./install.sh
 ```
 
-安装脚本会：
+安装脚本会在升级前备份旧版本，并安装到 `$CODEX_HOME/skills/build-standard-project`。重新启动 Codex 或开启新任务后生效。
 
-1. 验证源目录存在 `SKILL.md`；
-2. 使用 `$CODEX_HOME`，未设置时使用 `~/.codex`；
-3. 升级前把旧版本移动为带时间戳的备份；
-4. 将 Skill 安装到 `$CODEX_HOME/skills/build-standard-project`。
+## 使用方式
 
-安装后从下一次 Codex 对话开始可用。
-
-## 在 Codex 中使用
-
-创建新项目：
+普通任务直接描述需求即可；Skill 被调用后默认就是 Routine，无需反复强调“不执行 Init”。如需显式调用：
 
 ```text
-使用 $build-standard-project，根据已经确认的 PRD、产品设计和原型，
-生成标准全栈项目。人工 Review 非阻塞，但必须完成独立 AI Review。
+使用 $build-standard-project 修复这个 Bug。
 ```
 
-改造现有项目：
+初始化或标准化项目时明确说明：
 
 ```text
-使用 $build-standard-project 的 Adopt 模式，
-在保留现有代码和用户改动的前提下补齐需求追踪、AGENTS.md、
-质量门禁、CI、AI Review、容器部署和恢复流程。
+使用 $build-standard-project 初始化这个项目。先根据产品特性提供最小充分方案和一个有理由的升级方案，由我选择后再生成。
 ```
 
-只做审计：
+审计但不修改：
 
 ```text
-使用 $build-standard-project 的 Audit 模式检查当前仓库，
-只输出缺口、风险和证据，不修改文件。
+使用 $build-standard-project 审计当前仓库，只报告问题和证据。
 ```
 
-升级旧标准：
+如果希望已有工程长期采用 Routine 规则，可将 Skill 生成的精简规则合并进工程根目录 `AGENTS.md`。
 
-```text
-使用 $build-standard-project 的 Refresh 模式升级当前工程标准，
-先记录决策和迁移计划，再实施并完成独立 AI Review。
-```
+## 技术与部署选择
+
+Skill 不再假定所有项目使用同一套架构。Init 时会根据产品规模、团队、流量、数据、合规、预算和运维能力给出选择：
+
+1. 最小充分方案；
+2. 一个确有产品理由的升级方案；
+3. 只有需求已经证明必要时才提供复杂方案。
+
+用户确认前不会引入复杂基础设施。说明主要成本、限制和风险后，由用户决定产品、架构与运维取舍。
+
+## 质量策略
+
+Routine 的固定底线：
+
+1. 检查相关代码和约束；
+2. 完成最小完整改动；
+3. 走查最终 diff；
+4. 运行最相关的单元测试；
+5. 只重跑失败或被后续修改影响的检查。
+
+安全、隐私、资金、权限、不可逆数据、迁移、公共契约、共享基础设施和发布边界按实际风险增加验证。普通任务默认不要求 REQ/OPT、独立 Reviewer、AI Review 报告、全量 E2E、视觉测试或部署证据。
 
 ## 给其他 AI Agent 使用
 
-Codex 会原生发现 `SKILL.md`。其他 Agent 若没有 Skill 自动发现机制，可以把仓库克隆到任意只读位置，并在任务开头使用：
+没有原生 Skill 发现能力的 Agent，可以先读取：
 
 ```text
-请先完整读取：
-1. skills/build-standard-project/SKILL.md
-2. 该文件针对本任务要求读取的 references
-
-严格执行 Required workflow 和 Non-negotiable behavior。
-生成项目后，以项目根 AGENTS.md 为唯一工程规则源。
-所有新增、优化、废弃和删除必须先登记 REQ/OPT；
-修改完成后必须通过自动化质量门禁和独立 AI Review。
-人工 Review 可选，不作为默认阻塞条件。
+skills/build-standard-project/SKILL.md
 ```
 
-也可以直接采用：
-
-`skills/build-standard-project/references/bootstrap-prompt.md`
-
-作为通用 System Prompt 或项目初始化 Prompt。
-
-生成后的项目会提供以下 Agent 适配器：
-
-| Agent | 规则入口 |
-| --- | --- |
-| Codex | `AGENTS.md` |
-| Claude Code | `CLAUDE.md` → `AGENTS.md` |
-| Gemini CLI | `GEMINI.md` → `AGENTS.md` |
-| GitHub Copilot | `.github/copilot-instructions.md` → `AGENTS.md` |
-| Cursor | `.cursor/rules/project.mdc` → `AGENTS.md` |
-| 其他 Agent | 显式读取根 `AGENTS.md` |
+然后只读取该文件针对当前模式明确引用的 references。不要为 Routine 加载完整 Init 或 Release 流程。
 
 ## 生成项目
 
-Agent 完成产品交接和项目 Profile 后，底层生成命令为：
+用户完成 Init 选择后，底层生成命令为：
 
 ```bash
 python skills/build-standard-project/scripts/scaffold_project.py \
@@ -162,31 +142,7 @@ python skills/build-standard-project/scripts/scaffold_project.py \
   --output path/to/project
 ```
 
-首次初始化：
-
-```bash
-pnpm install
-pnpm format
-pnpm quality
-```
-
-注意：生成的是生产级工程基础，不代表产品功能已经实现。产品功能必须继续按照“REQ/OPT → AC → 实现 → 测试 → AI Review → 发布证据”逐个垂直切片交付。
-
-## 质量和 Review
-
-普通 PR 使用 `pnpm quality`。AI 交付和发布使用 `pnpm quality:full`。
-
-完整门禁可包含：
-
-- format、lint、typecheck、真实 coverage；
-- unit、integration、contract、migration drift；
-- build、E2E、Firefox/WebKit、Accessibility、visual snapshot；
-- secret scan、SAST、SBOM、dependency audit；
-- requirement traceability；
-- 强制 AI Review；
-- deployment preflight、health、smoke 和 recovery。
-
-AI Review 不能由实现 Agent 在同一推理过程内自我批准。优先使用独立 Agent；不可用时使用全新上下文。报告必须写入 `artifacts/ai-review/`，且旧报告不能批准修改后的代码。
+生成器只支持其明确声明的架构与部署模式；其他选择应使用针对该方案的实现，而不是强行套用复杂模板。
 
 ## 更新
 
@@ -198,9 +154,7 @@ git pull --ff-only
 
 ## 当前版本
 
-`1.1.0`
-
-第三轮独立 AI Review 结果：0 Blocker、0 High。
+`1.6.0`
 
 ## License
 

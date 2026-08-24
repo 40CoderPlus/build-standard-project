@@ -1,4 +1,4 @@
 interface:
   display_name: "Standard Project Builder"
-  short_description: "Generate AI-reviewed deployable full-stack projects"
-  default_prompt: "Use $build-standard-project to turn an approved product design into a traced, AI-reviewed, deployable standard project."
+  short_description: "Minimum-first init, fast maintenance"
+  default_prompt: "Use $build-standard-project. Default to the quality floor and treat efficiency as part of quality. For init, show the minimum sufficient option and at most one justified upgrade; I choose before scaffolding, and AI must never add complex infrastructure on its own."

@@ -5,8 +5,8 @@
 - Make root `AGENTS.md` canonical for humans and AI tools.
 - Make tool-specific instruction files point to `AGENTS.md`; do not duplicate business rules.
 - Preserve approved product, architecture, API, database, design, and quality baselines with an explicit authority order.
-- Update code, contracts, migrations, documentation, traceability, and tests together when behavior changes.
-- Assign a stable requirement/optimization ID before changing behavior and keep acceptance, tests, AI review, and release evidence linked.
+- Update code and directly affected tests together. Update contracts, migrations, documentation, and traceability only when the change affects them.
+- Assign a stable requirement/optimization ID for new features, product-significant/high-risk behavior, initialization baselines, and release-tracked work. Routine fixes and optimizations do not require an ID.
 
 ## Change discipline
 
@@ -16,16 +16,16 @@
 - Do not add dependencies without documenting need, alternatives, maintenance, license, bundle/runtime cost, and security impact.
 - Do not stage, commit, amend, rebase, push, tag, or rewrite history unless explicitly requested.
 - Never bypass hooks or CI, fabricate results, or lower a threshold to make a failure green.
-- Require an independent AI review for every material change. Human review is optional and non-blocking unless explicit external authority requires it.
+- For routine changes, review the final diff and run relevant unit tests. Require independent AI review for initialization, release, product-significant/high-risk changes, or explicit policy. Human review is optional and non-blocking unless external authority requires it.
 
-## TypeScript and boundaries
+## Language and boundaries
 
-- Enable `strict`, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`, `noImplicitOverride`, and fallthrough protection.
-- Reject explicit `any`; validate `unknown` at boundaries.
-- Use consistent package aliases and type-only imports.
+- Use the strict/safe modes and static analysis appropriate to the user-selected language and framework.
+- When TypeScript is selected, enable `strict`, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`, `noImplicitOverride`, and fallthrough protection; reject explicit `any` and validate `unknown` at boundaries.
+- Use consistent module/package boundaries and imports.
 - Keep contracts independent of frameworks, Prisma, Node-private APIs, and provider SDKs.
 - Keep browser code from importing database clients, AWS/private infrastructure SDKs, server configuration, or secrets.
-- Enforce package boundaries in ESLint.
+- Enforce boundaries with the selected ecosystem's available tooling.
 
 ## API and state
 
@@ -54,7 +54,7 @@
 
 ## UI and internationalization
 
-- Treat the approved design system as the token authority; use shadcn/ui for behavior and structure, not generic branding.
+- Treat the approved design system as the token authority. Use the user-selected component system for behavior and structure, not generic branding.
 - Implement loading, empty, error, permission, processing, success, disabled, hover, focus, destructive, retry, cancel, and degraded states as applicable.
 - Keep visible copy in locale dictionaries. Maintain functional and numeric equivalence across supported locales.
 - Meet WCAG 2.2 AA for supported flows: semantic names, keyboard navigation, visible focus, contrast, screen-reader behavior, reduced motion, and non-color state cues.
@@ -75,4 +75,4 @@
 - Keep dependency refreshes and repository-wide formatting separate.
 - Commit generated artifacts with their source/schema and review their diffs.
 - A valid handoff reports outcome, changed files/behavior, migrations/configuration, checks and exact results, untested areas, risks, and next action.
-- A valid handoff includes the AI review report, resolved findings, deployment/smoke evidence when released, and requirement status.
+- Include requirement status and AI-review/deployment evidence only when the selected route requires them. Keep routine handoffs concise.

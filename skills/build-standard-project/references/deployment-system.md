@@ -43,7 +43,7 @@ scripts/deploy/
 docs/engineering/deployment.md
 ```
 
-Use multi-stage builds, frozen lockfiles, non-root runtime users, immutable tags, SBOM/vulnerability evidence, health checks, and secrets outside images. Keep hot reload available without rebuilding containers for every source edit.
+Use multi-stage builds, frozen lockfiles, non-root runtime users, immutable tags, health checks, and secrets outside images. Add SBOM or provenance evidence only when the selected platform or compliance policy requires it. Keep hot reload available without rebuilding containers for every source edit.
 
 ## Orchestrated/high-assurance path
 
@@ -53,12 +53,12 @@ Add orchestration, autoscaling, service isolation, multi-region, policy enforcem
 
 The selected release workflow must:
 
-1. run applicable `quality:full` gates and validate required review evidence;
+1. run applicable `quality:full` checks and resolve material review findings;
 2. build/package immutable release artifacts appropriate to the platform;
 3. run migration, backup, and recovery preflight proportional to data risk;
 4. deploy to the user-approved target;
 5. verify health and product smoke tests;
-6. record version, artifacts, migration, review, and results;
+6. record version, artifacts, migration, and results;
 7. roll back traffic or execute forward recovery on failure.
 
 Do not claim deployment to an unspecified platform. Production deployment is an external side effect and requires user authorization.

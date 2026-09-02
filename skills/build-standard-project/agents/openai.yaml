@@ -1,4 +1,4 @@
 interface:
   display_name: "Standard Project Builder"
   short_description: "Minimum-first init, fast maintenance"
-  default_prompt: "Use $build-standard-project. Default to the quality floor and treat efficiency as part of quality. For init, show the minimum sufficient option and at most one justified upgrade; I choose before scaffolding, and AI must never add complex infrastructure on its own."
+  default_prompt: "Use $build-standard-project. For Routine work, run the directly affected test file and do not run aggregate or Full checks unless the affected risk requires them. For init, show the minimum sufficient option and at most one justified upgrade; I choose before scaffolding, and AI must never add complex infrastructure on its own."

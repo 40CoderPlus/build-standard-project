@@ -1,82 +1,27 @@
 # AI rules
 
-## Execution and communication
-
-- Do safe, in-scope local inspection, edits, and relevant tests without asking for confirmation.
-- Ask only for decisions that materially change product behavior, architecture, cost, or risk; batch them into one concise message with a recommended default.
-- Do not narrate internal deliberation, repeat plans, reopen settled decisions without new evidence, or rerun checks unaffected by later edits.
-- Lead handoffs with the outcome and retain only material evidence, caveats, and required next action.
-
 ## Development AI
 
-Before changing a repository:
+- Read root `AGENTS.md`, repository state, and only the product/engineering sources relevant to the task.
+- Do safe in-scope local work without repeated confirmation. Ask once only when a missing decision materially changes behavior, architecture, cost, or risk.
+- Make the smallest coherent change, preserve user work, and reuse existing code and conventions.
+- Record every requirement change, optimization, bug fix, or behavior-affecting maintenance change in the repository's single change record.
+- Update directly affected contracts, migrations, docs, and tests; every bug fix needs a regression test.
+- Review the final diff, run proportionate checks, and report results honestly.
+- Do not expose secrets/private data, invent product rules, use destructive operations, add speculative infrastructure, or perform external writes without authorization.
+- Do not narrate internal deliberation, reopen settled decisions without new evidence, or rerun unaffected checks.
 
-1. Read root `AGENTS.md`, approved product baseline, and task-relevant architecture/API/data/design/quality documents.
-2. Inspect existing implementation and repository state.
-3. Identify affected contracts, domains, pages, migrations, providers, security controls, and tests.
-4. State unresolved assumptions; create `BASELINE_GAP` for authoritative conflicts.
-5. Plan the smallest coherent and reversible change.
-
-Development AI must:
-
-- reuse existing code, tokens, schemas, providers, clocks, IDs, and fixtures;
-- protect unrelated and user-authored work;
-- synchronize behavior changes with contracts, documentation, migrations, and tests;
-- validate before claiming completion;
-- report exact commands, results, skipped checks, and remaining risk;
-- keep production writes, deployments, messages, permission changes, and other external effects inside explicit user authorization.
-- create traceability and request independent AI review for initialization, release, product-significant, or high-risk work; use a focused final-diff review for routine changes.
-
-Development AI must not:
-
-- read, reveal, copy, or commit real secrets or unnecessary production/user data;
-- invent business rules, roles, constants, rights, sources, consent, approval, or completion status;
-- use destructive Git/filesystem operations or rewrite history without explicit authorization;
-- bypass migrations, tests, security, accessibility, moderation, or quality thresholds;
-- delete or weaken checks to make CI pass;
-- create placeholder success, silent fallback, false PASS, or TODO logic on a release-critical path;
-- expose persistence/provider types as public contracts;
-- silently introduce dependencies, global state, microservices, or new infrastructure.
-- approve its own material change in the same reasoning pass when a separate reviewer or fresh context is available.
-
-## AI review
-
-- Routine bug fixes, optimizations, UI adjustments, and small refactors default to an implementer review of the final diff plus relevant unit tests. They do not require a separate review artifact.
-- Treat the implementing agent and reviewing agent as separate roles.
-- Give the reviewer authoritative requirements, raw diff, affected files, and test evidence.
-- Do not leak expected findings or the implementer's preferred conclusion.
-- Block acceptance and deployment on unresolved blocker/high findings.
-- Re-run affected checks and review after fixes.
-- Keep human review optional for ordinary VibeCoding. Independent AI review is mandatory only for initialization, release, product-significant/high-risk work, or when explicitly requested.
+Routine work needs only the existing concise change record and affected test, not a parallel requirement ledger, review file, or evidence package. For release or an affected high-risk boundary, use the repository's existing product/issue source and request a focused independent review when it adds real assurance.
 
 ## Product AI
 
-Treat every generated result as an untrusted candidate.
+Treat generated output as untrusted input. Before enabling an AI capability, define:
 
-For each AI capability, define:
+- allowed inputs and prohibited/private data;
+- provider/model boundary, timeout, cost limit, and fallback;
+- how users can distinguish, review, reject, or remove generated content;
+- provenance, publication, consent, retention, and incident handling where relevant.
 
-- allowed inputs and prohibited data;
-- provider adapter and approved model class;
-- model/version availability;
-- prompt/parameter version;
-- normalized input and output hashes;
-- cost, latency, timeout, retry, and fallback;
-- output nature label;
-- provenance and source limitations;
-- automated validation;
-- human review and named accountability;
-- lifecycle: requested → queued → generated → scanned/validated → pending review → approved/rejected → published/frozen/archived;
-- audit, metrics, incident response, deletion, and withdrawal.
+Provider failure is never a successful domain outcome. Do not fabricate citations, authority, rights, identity, or confidence. Do not automatically publish generated content or use private content for training without explicit authorization and an approved data boundary.
 
-Hard defaults:
-
-- Provider timeout/error is not approval or PASS.
-- AI output is not a cultural, scholarly, legal, safety, financial, or moderation authority.
-- AI content is not automatically published.
-- Do not fabricate citations, experts, rights, licenses, identity, confidence, or model versions.
-- Keep AI-generated, human-created, reconstructed, translated, and editorial content visibly distinguishable where the distinction matters.
-- Separate display/publication consent from model-training consent. Missing consent means no training.
-- Do not send private content or PII to a general external model without an approved data-processing boundary.
-- A successful experiment does not silently change the product contract.
-
-Require explicit approval and baseline changes before adding a provider/model category, expanding data use, enabling training, permitting automatic publication, or weakening a prohibited-use boundary.
+Add versioning, hashes, multi-stage lifecycles, moderation queues, or detailed audit records only when the product or compliance requirement needs them.

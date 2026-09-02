@@ -13,6 +13,7 @@ from typing import Any
 
 NAME_RE = re.compile(r"^[a-z][a-z0-9-]*$")
 SCOPE_RE = re.compile(r"^[a-z][a-z0-9-]*$")
+ASSETS = Path(__file__).resolve().parents[1] / "assets"
 
 
 def fail(message: str) -> None:
@@ -37,6 +38,10 @@ def write(root: Path, relative: str, content: str) -> None:
     target = root / relative
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(content, encoding="utf-8", newline="\n")
+
+
+def asset_text(name: str) -> str:
+    return (ASSETS / name).read_text(encoding="utf-8")
 
 
 def package_manifest(
@@ -111,6 +116,19 @@ def create_root(profile: dict[str, Any]) -> None:
     quality = profile["quality"]
     name = project["name"]
     scope = project["packageScope"]
+    integration_enabled = quality.get("integration") == "active"
+    e2e_enabled = quality.get("e2e") == "active"
+    cross_browser_enabled = quality.get("crossBrowser") == "active"
+    accessibility_enabled = quality.get("accessibility") == "active"
+    visual_enabled = quality.get("visual") == "active"
+    browser_enabled = any(
+        [
+            e2e_enabled,
+            cross_browser_enabled,
+            accessibility_enabled,
+            visual_enabled,
+        ]
+    )
 
     scripts = {
         "dev": "turbo run dev --parallel",
@@ -125,45 +143,41 @@ def create_root(profile: dict[str, Any]) -> None:
         "lint:styles": "stylelint \"apps/**/*.css\" \"packages/**/*.css\"",
         "lint:fix": "eslint . --fix --max-warnings=0",
         "typecheck": "tsc --noEmit && turbo run typecheck",
-        "test": "vitest run --coverage",
+        "test": "vitest run",
         "quality:fast": "pnpm test",
-        "test:browser:prepare": f"pnpm --filter @{scope}/web build",
+        "change:check": "node scripts/quality/check-change-record.mjs",
         "migration:check": "node scripts/quality/check-migrations.mjs",
         "migration:deploy": f"pnpm --filter @{scope}/db migrate:deploy",
         "migration:drift": f"pnpm --filter @{scope}/db migration:drift",
-        "test:e2e": "playwright test --project=chromium",
-        "validate:requirements": "node scripts/quality/check-requirements.mjs",
-        "validate:agent-rules": "node scripts/quality/check-agent-rules.mjs",
-        "validate:no-skipped-critical-tests": "node scripts/quality/check-no-skipped-tests.mjs",
-        "review:ai:check": "node scripts/quality/check-ai-review.mjs",
-        "review:fingerprint": "node scripts/quality/review-fingerprint.mjs",
-        "security:secrets": "node scripts/quality/check-secrets.mjs",
-        "security:sast": "node scripts/quality/check-sast.mjs",
-        "security:sbom": "node scripts/quality/check-sbom.mjs",
-        "security:sbom:generate": "node scripts/quality/check-sbom.mjs --write",
         "security:audit": "pnpm audit --prod --audit-level=high --registry=https://registry.npmjs.org",
         "security:audit:toolchain": "pnpm audit --audit-level=critical --registry=https://registry.npmjs.org",
         "deploy:preflight": "node scripts/deploy/preflight.mjs",
         "deploy:preflight:production": "node scripts/deploy/preflight.mjs --production",
         "deploy:smoke": "node scripts/deploy/smoke-test.mjs",
         "quality": (
-            "pnpm security:secrets && pnpm security:sast && pnpm security:audit "
-            "&& pnpm security:audit:toolchain "
-            "&& pnpm validate:requirements && pnpm validate:agent-rules "
-            "&& pnpm validate:no-skipped-critical-tests && pnpm format:check "
-            "&& pnpm lint && pnpm typecheck && pnpm test && pnpm contract:check "
-            "&& pnpm migration:check && pnpm build"
+            "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test "
+            "&& pnpm contract:check && pnpm migration:check && pnpm build"
         ),
     }
-    if quality.get("integration") == "active":
+    if integration_enabled:
         scripts["test:integration"] = "vitest run --config vitest.integration.config.ts"
-    if quality.get("crossBrowser") == "active":
+    if e2e_enabled:
+        scripts["test:e2e"] = "playwright test --project=chromium"
+    if cross_browser_enabled:
         scripts["test:cross-browser"] = "playwright test --project=firefox --project=webkit"
-    if quality.get("accessibility") == "active":
+    if accessibility_enabled:
         scripts["test:a11y"] = "playwright test --project=accessibility"
-    if quality.get("visual") == "active":
+    if visual_enabled:
         scripts["test:visual"] = "playwright test --project=visual"
     full_parts = ["pnpm quality", "pnpm migration:drift"]
+    browser_gates = {
+        "test:e2e",
+        "test:cross-browser",
+        "test:a11y",
+        "test:visual",
+    }
+    if browser_gates.intersection(scripts):
+        scripts["test:browser:prepare"] = f"pnpm --filter @{scope}/web build"
     for optional_gate in [
         "test:integration",
         "test:e2e",
@@ -172,11 +186,11 @@ def create_root(profile: dict[str, Any]) -> None:
         "test:visual",
     ]:
         if optional_gate in scripts:
-            if optional_gate == "test:e2e":
+            if optional_gate in browser_gates and "pnpm test:browser:prepare" not in full_parts:
                 full_parts.append("pnpm test:browser:prepare")
             full_parts.append(f"pnpm {optional_gate}")
     full_parts.extend(
-        ["pnpm security:sbom", "pnpm review:ai:check", "pnpm deploy:preflight"]
+        ["pnpm security:audit", "pnpm security:audit:toolchain", "pnpm deploy:preflight"]
     )
     scripts["quality:full"] = " && ".join(full_parts)
 
@@ -186,29 +200,16 @@ def create_root(profile: dict[str, Any]) -> None:
         "private": True,
         "packageManager": f"pnpm@{runtime['pnpm']}",
         "engines": {"node": runtime["node"], "pnpm": runtime["pnpm"]},
-        "pnpm": {
-            "overrides": {
-                "find-my-way": "9.7.0",
-                "picomatch": "4.0.5",
-                "postcss": "8.5.24",
-                "sharp": "0.35.3",
-            }
-        },
         "scripts": scripts,
         "devDependencies": {
             "@eslint/js": "9.39.5",
-            "@axe-core/playwright": "4.12.1",
-            "@playwright/test": "1.61.1",
             "@types/node": "24.10.1",
-            "@types/pg": "8.15.5",
-            "@vitest/coverage-v8": "4.1.10",
             "eslint": "9.39.5",
             "eslint-plugin-jsx-a11y": "6.10.2",
             "eslint-plugin-react": "7.37.5",
             "eslint-plugin-react-hooks": "7.0.1",
             "globals": "17.7.0",
             "markdownlint-cli2": "0.23.2",
-            "pg": "8.16.3",
             "prettier": "3.6.2",
             "stylelint": "16.26.1",
             "stylelint-config-standard": "39.0.1",
@@ -218,10 +219,16 @@ def create_root(profile: dict[str, Any]) -> None:
             "vitest": "4.1.10",
         },
     }
-    if profile["data"]["database"] == "mysql":
-        root_package["devDependencies"].pop("@types/pg", None)
-        root_package["devDependencies"].pop("pg", None)
-        root_package["devDependencies"]["mysql2"] = "3.15.3"
+    if browser_enabled:
+        root_package["devDependencies"]["@playwright/test"] = "1.61.1"
+    if accessibility_enabled:
+        root_package["devDependencies"]["@axe-core/playwright"] = "4.12.1"
+    if integration_enabled:
+        if profile["data"]["database"] == "mysql":
+            root_package["devDependencies"]["mysql2"] = "3.15.3"
+        else:
+            root_package["devDependencies"]["@types/pg"] = "8.15.5"
+            root_package["devDependencies"]["pg"] = "8.16.3"
     write(ROOT, "package.json", json_text(root_package))
     write(ROOT, ".nvmrc", runtime["node"] + "\n")
     write(
@@ -269,6 +276,13 @@ def create_root(profile: dict[str, Any]) -> None:
             }
         ),
     )
+    root_ts_includes = ["vitest.config.ts"]
+    if integration_enabled:
+        root_ts_includes.extend(
+            ["vitest.integration.config.ts", "tests/integration/**/*.ts"]
+        )
+    if browser_enabled:
+        root_ts_includes.extend(["playwright.config.ts", "tests/browser/**/*.ts"])
     write(
         ROOT,
         "tsconfig.json",
@@ -280,13 +294,7 @@ def create_root(profile: dict[str, Any]) -> None:
                     "moduleResolution": "Bundler",
                     "noEmit": True,
                 },
-                "include": [
-                    "playwright.config.ts",
-                    "vitest.config.ts",
-                    "vitest.integration.config.ts",
-                    "tests/browser/**/*.ts",
-                    "tests/integration/**/*.ts",
-                ],
+                "include": root_ts_includes,
             }
         ),
     )
@@ -401,43 +409,56 @@ def create_root(profile: dict[str, Any]) -> None:
             "export default defineConfig({\n"
             "  test: {\n"
             "    include: ['apps/**/*.test.ts', 'packages/**/*.test.ts'],\n"
-            "    coverage: {\n"
-            "      include: ['packages/domain/src/**/*.ts', 'packages/config/src/**/*.ts'],\n"
-            "      reporter: ['text', 'json-summary'],\n"
-            "      thresholds: { lines: 75, functions: 75, branches: 65, statements: 75 },\n"
-            "    },\n"
             "  },\n"
             "});\n"
         ),
     )
-    write(
-        ROOT,
-        "vitest.integration.config.ts",
-        (
-            "import { defineConfig } from 'vitest/config';\n\n"
-            "export default defineConfig({ test: { include: ['tests/integration/**/*.test.ts'] } });\n"
-        ),
-    )
-    write(
-        ROOT,
-        "playwright.config.ts",
-        (
-            "import { defineConfig, devices } from '@playwright/test';\n\n"
-            "export default defineConfig({\n"
-            "  testDir: './tests/browser',\n"
-            "  forbidOnly: Boolean(process.env.CI),\n"
-            "  use: { baseURL: 'http://127.0.0.1:3000', trace: 'retain-on-failure' },\n"
-            "  projects: [\n"
-            "    { name: 'chromium', testIgnore: [/.*\\.a11y\\.spec\\.ts/, /.*\\.visual\\.spec\\.ts/], use: { ...devices['Desktop Chrome'] } },\n"
-            "    { name: 'firefox', testIgnore: [/.*\\.a11y\\.spec\\.ts/, /.*\\.visual\\.spec\\.ts/], use: { ...devices['Desktop Firefox'] } },\n"
-            "    { name: 'webkit', testIgnore: [/.*\\.a11y\\.spec\\.ts/, /.*\\.visual\\.spec\\.ts/], use: { ...devices['Desktop Safari'] } },\n"
-            "    { name: 'accessibility', testMatch: /.*\\.a11y\\.spec\\.ts/, use: { ...devices['Desktop Chrome'] } },\n"
-            "    { name: 'visual', testMatch: /.*\\.visual\\.spec\\.ts/, use: { ...devices['Desktop Chrome'] } },\n"
-            "  ],\n"
-            f"  webServer: {{ command: 'pnpm --filter @{scope}/web start', url: 'http://127.0.0.1:3000', reuseExistingServer: false, timeout: 120_000 }},\n"
-            "});\n"
-        ),
-    )
+    if integration_enabled:
+        write(
+            ROOT,
+            "vitest.integration.config.ts",
+            (
+                "import { defineConfig } from 'vitest/config';\n\n"
+                "export default defineConfig({ test: { include: ['tests/integration/**/*.test.ts'] } });\n"
+            ),
+        )
+    if browser_enabled:
+        playwright_projects = []
+        if e2e_enabled:
+            playwright_projects.append(
+                "    { name: 'chromium', testIgnore: [/.*\\.a11y\\.spec\\.ts/, /.*\\.visual\\.spec\\.ts/], use: { ...devices['Desktop Chrome'] } },"
+            )
+        if cross_browser_enabled:
+            playwright_projects.extend(
+                [
+                    "    { name: 'firefox', testIgnore: [/.*\\.a11y\\.spec\\.ts/, /.*\\.visual\\.spec\\.ts/], use: { ...devices['Desktop Firefox'] } },",
+                    "    { name: 'webkit', testIgnore: [/.*\\.a11y\\.spec\\.ts/, /.*\\.visual\\.spec\\.ts/], use: { ...devices['Desktop Safari'] } },",
+                ]
+            )
+        if accessibility_enabled:
+            playwright_projects.append(
+                "    { name: 'accessibility', testMatch: /.*\\.a11y\\.spec\\.ts/, use: { ...devices['Desktop Chrome'] } },"
+            )
+        if visual_enabled:
+            playwright_projects.append(
+                "    { name: 'visual', testMatch: /.*\\.visual\\.spec\\.ts/, use: { ...devices['Desktop Chrome'] } },"
+            )
+        write(
+            ROOT,
+            "playwright.config.ts",
+            (
+                "import { defineConfig, devices } from '@playwright/test';\n\n"
+                "export default defineConfig({\n"
+                "  testDir: './tests/browser',\n"
+                "  forbidOnly: Boolean(process.env.CI),\n"
+                "  use: { baseURL: 'http://127.0.0.1:3000', trace: 'retain-on-failure' },\n"
+                "  projects: [\n"
+                + "\n".join(playwright_projects)
+                + "\n  ],\n"
+                + f"  webServer: {{ command: 'pnpm --filter @{scope}/web start', url: 'http://127.0.0.1:3000', reuseExistingServer: false, timeout: 120_000 }},\n"
+                + "});\n"
+            ),
+        )
     database_url = (
         f"mysql://app:app@127.0.0.1:3306/{name}"
         if profile["data"]["database"] == "mysql"
@@ -947,41 +968,16 @@ def create_docs(profile: dict[str, Any]) -> None:
     write(
         ROOT,
         "AGENTS.md",
-        f"""# {project['displayName']} repository instructions
-
-This is the canonical instruction source.
-
-## Route
-
-The Routine path is the default for scoped fixes, optimizations, UI changes, and refactors. Read only relevant code, tests, contracts, and instructions. Use Full only for initialization, release, or affected security/privacy, money/data, migration/public-contract, shared-infrastructure, deployment, or product-AI boundaries.
-
-## Execute
-
-- Treat efficiency as part of quality. Do safe in-scope work without an upfront plan, repeated confirmation, or step narration. Batch one question only when a decision materially changes behavior, architecture, cost, or risk.
-- Preserve unrelated work and make the smallest coherent change.
-- `.project/standard-project.json` records the user's technology/deployment choice. Prefer minimum sufficient design; never add complex infrastructure without explicit user selection. After material risks are disclosed, the user owns the approved product/architecture/operations tradeoff.
-- Read task-relevant product/engineering documents only when the affected boundary requires them. Do not invent product rules.
-- Keep browser code away from databases/secrets, validate external input, enforce authorization server-side, and protect real secrets/private data.
-- Do not perform destructive Git/filesystem actions, commits, pushes, deployments, or external writes without authorization.
-
-## Validate
-
-- Routine: review the final diff and run the narrowest relevant unit test or `pnpm quality:fast`. No REQ/OPT, independent review artifact, aggregate gate, E2E/visual suite, or deployment evidence by default.
-- Add process or checks beyond this quality floor only for an affected risk or explicit user request.
-- Full: use traceability, directly affected gates, and independent review only as required. Run `pnpm quality:full` only for high-risk/release readiness.
-- Do not rerun unaffected successful checks or fabricate evidence. Keep human review optional unless explicitly required.
-
-## Finish
-
-Stop when proportionate checks pass. Report only outcome, key evidence, and material risk or required user action.
-""",
+        asset_text("AGENTS.template.md").replace(
+            "{{PROJECT_DISPLAY_NAME}}", project["displayName"]
+        ),
     )
     write(
         ROOT,
         "docs/product/README.md",
         f"""# {project['displayName']} product baseline
 
-Status: `BASELINE_GAP` until approved product inputs replace this scaffold.
+Status: draft until approved product inputs replace this scaffold.
 
 ## Positioning
 
@@ -1003,8 +999,13 @@ Status: `BASELINE_GAP` until approved product inputs replace this scaffold.
 
 | ID | User/job | Phase | UI | API | Data/job | Authorization/audit | Acceptance |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| BASELINE_GAP-001 | Define the first vertical slice | MVP | TBD | TBD | TBD | TBD | TBD |
+| TBD | Define the first vertical slice | MVP | TBD | TBD | TBD | TBD | TBD |
 """,
+    )
+    write(
+        ROOT,
+        "docs/changes.md",
+        asset_text("changes.template.md"),
     )
     write(
         ROOT,
@@ -1034,292 +1035,14 @@ This repository implements the approved modular-monolith/container option. Revis
 
 Use strict TypeScript, runtime validation, stable contracts, migration-only schema changes, structured logs, explicit configuration validation, and Conventional Commits.
 
-Root gates: `pnpm quality:fast` for routine unit-test feedback, `pnpm quality` for initialization/broad non-browser checks, and `pnpm quality:full` for high-risk/release readiness. The full gate includes requirement and Agent validation, integration, browser, accessibility, visual, security, AI review, and deployment preflight.
+Root gates: `pnpm quality:fast` for routine unit-test feedback, `pnpm change:check -- --base <sha>` for change-record/test traceability, `pnpm quality` for the standard format/lint/type/test/build baseline, and `pnpm quality:full` for directly affected integration, browser, security, migration, and deployment checks.
 
-Never use empty success scripts for deferred gates. Activate integration, browser, accessibility, visual, and security gates according to `.project/standard-project.json`.
+Never use empty success scripts for deferred checks. Activate optional integration and browser suites according to `.project/standard-project.json`; add security tooling only for the selected hosting or compliance boundary.
 """,
-    )
-    write(
-        ROOT,
-        "docs/engineering/ai-rules.md",
-        """# AI rules
-
-Development AI must read `AGENTS.md`, preserve user work, make surgical changes, synchronize directly affected contracts/docs/tests, protect secrets, and report validation honestly. Read a REQ/OPT record only when the selected route requires one.
-
-Keep interaction lean: act on safe local work, batch material questions once, omit internal deliberation/process narration, and do not reopen decisions or repeat checks without new evidence.
-
-Product AI is disabled until an approved capability contract defines inputs, prohibited data, provider/model, provenance, hashes, review, lifecycle, fallback, audit, consent, incident response, and publication rules.
-
-Routine changes use a focused final-diff review plus relevant unit tests. Initialization, releases, and product-significant/high-risk changes require an independent AI review report with no unresolved blocker/high findings. Human review is optional for ordinary VibeCoding and is not a default merge blocker.
-""",
-    )
-    write(
-        ROOT,
-        "docs/engineering/quality-gates.md",
-        """# Quality gates
-
-Use proportional validation. Routine changes require a focused final-diff review and relevant unit tests. Add checks only for boundaries the change actually affects.
-
-The first product slice must add unit, integration, API/contract, migration, E2E, accessibility, responsive visual, provider-failure, requirement-traceability, and AI-review evidence as applicable. Never reduce a threshold or skip a required suite to manufacture green CI.
-""",
-    )
-    write(
-        ROOT,
-        "docs/architecture/decisions/ADR-001-modular-monolith.md",
-        """# ADR-001: Modular monolith
-
-Status: accepted
-
-Use one modular API with explicit domain boundaries. Revisit only when measured scaling, security isolation, availability, or team ownership requires independent deployment. Do not add microservices, Kafka, Kubernetes, or a distributed saga without a new approved ADR.
-""",
-    )
-
-
-def create_governance(profile: dict[str, Any]) -> None:
-    project = profile["project"]
-    adapter_body = (
-        "Read and obey the root `AGENTS.md` in full before analysis or edits. "
-        "For routine work, inspect only task-relevant code, tests, and contracts. "
-        "Read product and requirement baselines when the route in `AGENTS.md` requires them. "
-        "`AGENTS.md` is the canonical rule source and wins on conflict. "
-        "Do not create tool-specific alternative rules.\n"
-    )
-    write(ROOT, "CLAUDE.md", "# Claude repository adapter\n\n" + adapter_body)
-    write(ROOT, "GEMINI.md", "# Gemini repository adapter\n\n" + adapter_body)
-    write(
-        ROOT,
-        ".github/copilot-instructions.md",
-        "# Copilot repository adapter\n\n" + adapter_body,
-    )
-    write(
-        ROOT,
-        ".cursor/rules/project.mdc",
-        (
-            "---\ndescription: Canonical repository instruction adapter\nalwaysApply: true\n---\n\n"
-            + adapter_body
-        ),
-    )
-    write(
-        ROOT,
-        "docs/requirements/README.md",
-        f"""# {project['displayName']} requirement ledger
-
-Initialization baselines, new features, product-significant/high-risk behavior, compatibility-impacting deprecations/removals, and release-tracked work receive a stable `REQ-*` or `OPT-*` ID before implementation. Routine fixes, optimizations, UI adjustments, and refactors do not require one.
-
-For traced work, map requirement → acceptance criteria → affected contracts/modules → implementation → tests → AI review → release evidence. Run `pnpm validate:requirements` when traced records change or as part of full validation.
-
-Human review is optional for ordinary VibeCoding. Independent AI review is mandatory for initialization, release, and product-significant/high-risk changes.
-""",
-    )
-    write(
-        ROOT,
-        "docs/requirements/requirements.json",
-        json_text(
-            {
-                "schemaVersion": "1.0.0",
-                "requirements": [
-                    {
-                        "id": "REQ-000",
-                        "document": "docs/requirements/REQ-000-foundation.md",
-                        "type": "foundation",
-                        "status": "proposed",
-                        "title": "Replace the scaffold with the first approved vertical slice",
-                        "phase": profile["product"]["phase"],
-                        "approvalMode": "pending-approved-product-input",
-                        "acceptanceCriteria": [],
-                        "affected": {"files": [], "deletedFiles": [], "tests": []},
-                        "quality": {"aiReviewReport": None, "releaseEvidence": None},
-                    }
-                ],
-            }
-        ),
-    )
-    write(
-        ROOT,
-        "docs/requirements/REQ-000-foundation.md",
-        """# REQ-000: First approved vertical slice
-
-Status: proposed
-
-Replace this scaffold record after approved product inputs define the first user or operator loop. Do not mark it accepted without stable acceptance IDs, implementation and test mappings, mandatory AI review, and release evidence.
-""",
-    )
-    write(
-        ROOT,
-        "docs/requirements/REQ-000-template.md",
-        """# REQ-000: Requirement title
-
-Status: proposed
-
-## Problem and user job
-
-## Current and intended behavior
-
-## Non-goals
-
-## Acceptance criteria
-
-- AC-001:
-
-## Affected contracts and modules
-
-## Migration, rollout, fallback, and recovery
-
-## Privacy, security, AI, locale, and accessibility
-
-## Tests and AI review
-""",
-    )
-    write(
-        ROOT,
-        ".github/pull_request_template.md",
-        """# Pull request
-
-## Route
-
-- Routine / Full:
-- REQ/OPT and acceptance IDs (Full only):
-
-## Change
-
-- Behavior/invariants:
-- Contracts/migrations/configuration:
-
-## Evidence
-
-- Final-diff review:
-- Unit/targeted checks:
-- AI review and resolved blocker/high findings (Full only):
-- Deployment/smoke/recovery evidence (Release only):
-
-## Human review
-
-Human review is welcome but optional and non-blocking unless explicit policy or user instruction requires it.
-""",
-    )
-    write(
-        ROOT,
-        "artifacts/ai-review/.gitkeep",
-        "",
     )
 
 
 def create_quality_scripts(profile: dict[str, Any]) -> None:
-    write(
-        ROOT,
-        "scripts/quality/check-requirements.mjs",
-        r"""import { execFileSync } from 'node:child_process';
-import { access, readFile } from 'node:fs/promises';
-
-const allowedStatuses = new Set(['proposed', 'clarified', 'approved', 'implementing', 'ai_review', 'accepted', 'released', 'verified', 'rejected', 'superseded', 'rolled_back']);
-const tracedStatuses = new Set(['approved', 'implementing', 'ai_review', 'accepted', 'released', 'verified']);
-const changeStatuses = new Set(['implementing', 'ai_review', 'accepted', 'released', 'verified']);
-const evidenceStatuses = new Set(['accepted', 'released', 'verified']);
-const index = JSON.parse(await readFile('docs/requirements/requirements.json', 'utf8'));
-if (index.schemaVersion !== '1.0.0' || !Array.isArray(index.requirements)) throw new Error('Invalid requirement index schema.');
-const ids = new Set();
-const tracedFiles = new Set();
-for (const requirement of index.requirements) {
-  if (!/^(?:REQ|OPT)-[0-9]{3,}$/u.test(requirement.id)) throw new Error(`Invalid requirement ID: ${requirement.id}`);
-  if (ids.has(requirement.id)) throw new Error(`Duplicate requirement ID: ${requirement.id}`);
-  ids.add(requirement.id);
-  if (!allowedStatuses.has(requirement.status)) throw new Error(`Invalid status for ${requirement.id}: ${requirement.status}`);
-  await access(requirement.document);
-  const acceptanceIds = new Set();
-  for (const criterion of requirement.acceptanceCriteria ?? []) {
-    if (!/^AC-[0-9]{3,}$/u.test(criterion.id) || acceptanceIds.has(criterion.id)) throw new Error(`Invalid or duplicate acceptance ID in ${requirement.id}`);
-    acceptanceIds.add(criterion.id);
-    if (!criterion.statement?.trim()) throw new Error(`Missing acceptance statement: ${requirement.id}/${criterion.id}`);
-    if (!Array.isArray(criterion.tests)) throw new Error(`Missing test mapping: ${requirement.id}/${criterion.id}`);
-    for (const testFile of criterion.tests) await access(testFile);
-  }
-  const affectedFiles = requirement.affected?.files ?? [];
-  const deletedFiles = requirement.affected?.deletedFiles ?? [];
-  const affectedTests = requirement.affected?.tests ?? [];
-  if (new Set([...affectedFiles, ...deletedFiles]).size !== affectedFiles.length + deletedFiles.length) throw new Error(`Duplicate affected/deleted file in ${requirement.id}`);
-  for (const file of affectedFiles) await access(file);
-  for (const file of deletedFiles) if (typeof file !== 'string' || !file.trim()) throw new Error(`Invalid deleted file in ${requirement.id}`);
-  if (changeStatuses.has(requirement.status)) {
-    for (const file of [...affectedFiles, ...deletedFiles]) tracedFiles.add(file.replaceAll('\\', '/'));
-  }
-  for (const testFile of affectedTests) await access(testFile);
-  if (tracedStatuses.has(requirement.status)) {
-    if (acceptanceIds.size === 0) throw new Error(`Traced requirement has no acceptance criteria: ${requirement.id}`);
-    if (affectedFiles.length + deletedFiles.length === 0) throw new Error(`Traced requirement has no affected/deleted files: ${requirement.id}`);
-    if ((requirement.acceptanceCriteria ?? []).some((criterion) => criterion.tests.length === 0)) throw new Error(`Traced requirement has untested acceptance criteria: ${requirement.id}`);
-  }
-  if (evidenceStatuses.has(requirement.status)) {
-    if (!requirement.quality?.aiReviewReport) throw new Error(`Accepted requirement has no AI review: ${requirement.id}`);
-    const report = JSON.parse(await readFile(requirement.quality.aiReviewReport, 'utf8'));
-    if (report.schemaVersion !== '1.1.0' || report.requirementId !== requirement.id) throw new Error(`AI review does not match requirement: ${requirement.id}`);
-    if (![...acceptanceIds].every((id) => report.acceptanceIds?.includes(id))) throw new Error(`AI review misses acceptance IDs: ${requirement.id}`);
-    if (!affectedFiles.every((file) => report.change?.files?.includes(file))) throw new Error(`AI review misses affected files: ${requirement.id}`);
-    if (!deletedFiles.every((file) => report.change?.deletedFiles?.includes(file))) throw new Error(`AI review misses deleted files: ${requirement.id}`);
-    if (!['pass', 'pass_with_followups'].includes(report.verdict)) throw new Error(`AI review does not pass: ${requirement.id}`);
-    if (requirement.status !== 'accepted' && !requirement.quality?.releaseEvidence) throw new Error(`Released requirement has no release evidence: ${requirement.id}`);
-    if (requirement.quality?.releaseEvidence) await access(requirement.quality.releaseEvidence);
-  }
-}
-
-const base = process.env.AI_REVIEW_BASE_SHA;
-if (base && !/^0+$/u.test(base)) {
-  const changed = execFileSync('git', ['diff', '--name-only', '--diff-filter=ACDMRTUXB', `${base}...HEAD`], { encoding: 'utf8' })
-    .split(/\r?\n/u)
-    .map((file) => file.replaceAll('\\', '/').trim())
-    .filter(Boolean)
-    .filter((file) => !file.startsWith('docs/requirements/') && !file.startsWith('artifacts/') && !file.includes('/generated/'));
-  const untraced = changed.filter((file) => !tracedFiles.has(file));
-  if (untraced.length) throw new Error(`Changed files are not assigned to a REQ/OPT: ${untraced.join(', ')}`);
-}
-console.log(`Requirement traceability passed: ${ids.size} requirement(s).`);
-""",
-    )
-    write(
-        ROOT,
-        "scripts/quality/check-agent-rules.mjs",
-        r"""import { readFile } from 'node:fs/promises';
-
-const adapters = ['CLAUDE.md', 'GEMINI.md', '.github/copilot-instructions.md', '.cursor/rules/project.mdc'];
-const canonical = await readFile('AGENTS.md', 'utf8');
-for (const phrase of ['Routine path is the default', 'pnpm quality:fast', 'pnpm quality:full', 'Keep human review optional']) {
-  if (!canonical.includes(phrase)) throw new Error(`AGENTS.md is missing mandatory policy: ${phrase}`);
-}
-for (const file of adapters) {
-  const text = await readFile(file, 'utf8');
-  if (!text.includes('AGENTS.md')) throw new Error(`${file} does not point to AGENTS.md.`);
-  if (!text.includes('canonical rule source')) throw new Error(`${file} does not declare AGENTS.md canonical.`);
-  if (Buffer.byteLength(text, 'utf8') > 1200) throw new Error(`${file} duplicates too much policy; keep it as a pointer.`);
-  if (/## (?:Product|Architecture|Security|Quality|AI rules)/iu.test(text)) throw new Error(`${file} contains a duplicate rule section.`);
-}
-console.log(`Agent rule adapters passed: ${adapters.length} adapters point to AGENTS.md.`);
-""",
-    )
-    write(
-        ROOT,
-        "scripts/quality/check-no-skipped-tests.mjs",
-        r"""import { readdir, readFile } from 'node:fs/promises';
-import path from 'node:path';
-
-const findings = [];
-async function walk(directory) {
-  for (const entry of await readdir(directory, { withFileTypes: true })) {
-    if (['node_modules', '.git', '.next', 'dist', 'docs'].includes(entry.name)) continue;
-    const target = path.join(directory, entry.name);
-    if (entry.isDirectory()) await walk(target);
-    else if (/\.(?:test|spec)\.[cm]?[jt]sx?$/u.test(entry.name)) {
-      const text = await readFile(target, 'utf8');
-      const pattern = /\b(?:describe|it|test)(?:\.describe)?\.(?:only|skip|fixme|todo)\s*\(/gu;
-      for (const match of text.matchAll(pattern)) findings.push(`${target.replaceAll('\\', '/')}:${text.slice(0, match.index).split('\n').length}`);
-    }
-  }
-}
-for (const root of ['apps', 'packages', 'tests']) {
-  try { await walk(root); } catch (error) { if (error?.code !== 'ENOENT') throw error; }
-}
-if (findings.length) throw new Error(`Required tests contain skip/only/fixme/todo: ${findings.join(', ')}`);
-console.log('Skipped-critical-test gate passed.');
-""",
-    )
     scope = profile["project"]["packageScope"]
     write(
         ROOT,
@@ -1343,258 +1066,8 @@ console.log(`Migration structure and schema passed: ${{migrations.length}} migra
     )
     write(
         ROOT,
-        "scripts/quality/check-ai-review.mjs",
-        r"""import { execFileSync } from 'node:child_process';
-import { createHash } from 'node:crypto';
-import { readdir, readFile } from 'node:fs/promises';
-import path from 'node:path';
-
-const base = process.env.AI_REVIEW_BASE_SHA;
-let reportPath = process.argv[2] || process.env.AI_REVIEW_REPORT;
-if (!reportPath && base && !/^0+$/u.test(base)) {
-  const files = (await readdir('artifacts/ai-review')).filter((file) => file.endsWith('.json')).sort();
-  reportPath = files.at(-1) ? path.join('artifacts/ai-review', files.at(-1)) : undefined;
-}
-if (!reportPath) throw new Error('Mandatory AI review report path is missing; set AI_REVIEW_REPORT explicitly.');
-const report = JSON.parse(await readFile(reportPath, 'utf8'));
-if (report.schemaVersion !== '1.1.0') throw new Error('Unsupported AI review schema.');
-if (!/^(?:REQ|OPT)-[0-9]{3,}$/u.test(report.requirementId) || !Array.isArray(report.acceptanceIds) || report.acceptanceIds.length === 0) throw new Error('AI review requirement/acceptance IDs are invalid.');
-const requirementIndex = JSON.parse(await readFile('docs/requirements/requirements.json', 'utf8'));
-const requirement = requirementIndex.requirements?.find((item) => item.id === report.requirementId);
-if (!requirement) throw new Error('AI review requirement does not exist in the traceability index.');
-const requiredAcceptanceIds = (requirement.acceptanceCriteria ?? []).map((criterion) => criterion.id);
-if (requiredAcceptanceIds.length === 0 || !requiredAcceptanceIds.every((id) => report.acceptanceIds.includes(id))) throw new Error('AI review does not cover the indexed acceptance criteria.');
-if (!report.reviewer?.agent || !report.reviewer?.model || /record|placeholder|unknown/iu.test(`${report.reviewer.agent} ${report.reviewer.model}`)) throw new Error('AI reviewer identity/model is missing or placeholder.');
-if (!['separate-agent', 'fresh-context'].includes(report.reviewer?.mode)) throw new Error('AI review must use an independent context.');
-if (!report.reviewer?.sessionId || !report.reviewer?.implementationSessionId || report.reviewer.sessionId === report.reviewer.implementationSessionId) throw new Error('AI reviewer session must differ from the implementation session.');
-if (!Array.isArray(report.change?.files) || !Array.isArray(report.change?.deletedFiles)) throw new Error('AI review changed/deleted-file evidence is missing.');
-const files = report.change.files.map((file) => file.replaceAll('\\', '/')).sort();
-const deletedFiles = report.change.deletedFiles.map((file) => file.replaceAll('\\', '/')).sort();
-if (files.length + deletedFiles.length === 0 || new Set(files).size !== files.length || new Set(deletedFiles).size !== deletedFiles.length || deletedFiles.some((file) => files.includes(file))) throw new Error('AI review changed/deleted-file evidence is empty, duplicated, or overlapping.');
-if (!(requirement.affected?.files ?? []).every((file) => files.includes(file.replaceAll('\\', '/')))) throw new Error('AI review does not cover the requirement affected files.');
-if (!(requirement.affected?.deletedFiles ?? []).every((file) => deletedFiles.includes(file.replaceAll('\\', '/')))) throw new Error('AI review does not cover the requirement deleted files.');
-const hash = createHash('sha256');
-for (const file of files) {
-  if (file.startsWith('artifacts/ai-review/') || file.includes('/generated/')) throw new Error(`AI review cannot fingerprint generated/review output: ${file}`);
-  hash.update(file);
-  hash.update('\0');
-  hash.update(await readFile(file));
-  hash.update('\0');
-}
-const contentHash = hash.digest('hex');
-if (report.change.contentHash !== contentHash) throw new Error('AI review is stale or not bound to the current changed-file contents.');
-if (base && !/^0+$/u.test(base)) {
-  const resolvedBase = execFileSync('git', ['rev-parse', base], { encoding: 'utf8' }).trim();
-  const head = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
-  if (resolvedBase === head) throw new Error('AI review base and head must identify a non-empty review range.');
-  const range = `${resolvedBase}...${head}`;
-  const actual = execFileSync('git', ['diff', '--name-only', '--diff-filter=ACDMRTUXB', range], { encoding: 'utf8' })
-    .split(/\r?\n/u)
-    .map((file) => file.replaceAll('\\', '/').trim())
-    .filter(Boolean)
-    .filter((file) => !file.startsWith('artifacts/ai-review/') && !file.includes('/generated/'));
-  if (actual.length === 0) throw new Error('AI review range has no material changed files.');
-  const actualDeleted = execFileSync('git', ['diff', '--name-only', '--diff-filter=D', range], { encoding: 'utf8' })
-    .split(/\r?\n/u)
-    .map((file) => file.replaceAll('\\', '/').trim())
-    .filter(Boolean)
-    .filter((file) => !file.startsWith('artifacts/ai-review/') && !file.includes('/generated/'));
-  const actualCurrent = actual.filter((file) => !actualDeleted.includes(file));
-  const missing = actualCurrent.filter((file) => !files.includes(file));
-  const missingDeleted = actualDeleted.filter((file) => !deletedFiles.includes(file));
-  if (missing.length) throw new Error(`AI review does not cover current changed files: ${missing.join(', ')}`);
-  if (missingDeleted.length) throw new Error(`AI review does not cover current deleted files: ${missingDeleted.join(', ')}`);
-  const unexpected = files.filter((file) => !actualCurrent.includes(file));
-  const unexpectedDeleted = deletedFiles.filter((file) => !actualDeleted.includes(file));
-  if (unexpected.length || unexpectedDeleted.length) throw new Error(`AI review includes files outside the current diff: ${[...unexpected, ...unexpectedDeleted].join(', ')}`);
-  const gitDiffHash = createHash('sha256').update(execFileSync('git', ['diff', '--binary', range])).digest('hex');
-  if (report.change.baseSha !== resolvedBase || report.change.headSha !== head || report.change.gitDiffHash !== gitDiffHash || report.change.diffId !== gitDiffHash) throw new Error('AI review is not bound to the exact Git base/head binary diff.');
-} else {
-  if (deletedFiles.length) throw new Error('Deleted-file review requires AI_REVIEW_BASE_SHA so deleted base contents can be verified.');
-  if (report.change.diffId !== contentHash) throw new Error('Local AI review diffId must equal the current content fingerprint.');
-}
-if (!Array.isArray(report.checks) || report.checks.length === 0 || !report.checks.some((check) => /\bquality\b/u.test(check.command)) || report.checks.some((check) => check.result !== 'pass' || !check.evidence?.trim())) throw new Error('AI review requires passing quality checks with evidence; fail/not_run is not accepted.');
-if (!Array.isArray(report.findings)) throw new Error('AI review findings are invalid.');
-for (const finding of report.findings) {
-  if (!['blocker', 'high', 'medium', 'low'].includes(finding.severity) || !['open', 'resolved', 'accepted'].includes(finding.status)) throw new Error('AI review finding severity/status is invalid.');
-  for (const field of ['title', 'evidence', 'rule', 'impact', 'recommendedAction']) if (!finding[field]?.trim()) throw new Error(`AI review finding is missing ${field}.`);
-  if (!Array.isArray(finding.locations) || finding.locations.length === 0) throw new Error('AI review finding has no affected location.');
-  if (finding.status === 'resolved' && !finding.resolution?.trim()) throw new Error('Resolved AI review finding has no resolution evidence.');
-  if (finding.severity === 'medium' && finding.status === 'accepted' && (!finding.followUp?.owner || !finding.followUp?.reason || !finding.followUp?.expiresAt || !finding.followUp?.requirementId)) throw new Error('Accepted medium finding lacks owner/reason/expiry/follow-up requirement.');
-}
-const unresolved = report.findings.filter((finding) => ['blocker', 'high'].includes(finding.severity) && finding.status !== 'resolved');
-if (unresolved.length) throw new Error(`AI review has ${unresolved.length} unresolved blocker/high finding(s).`);
-if (!['pass', 'pass_with_followups'].includes(report.verdict)) throw new Error(`AI review verdict does not pass: ${report.verdict}`);
-const generated = Date.parse(report.generatedAt);
-const completed = Date.parse(report.completedAt);
-if (!Number.isFinite(generated) || !Number.isFinite(completed) || completed < generated) throw new Error('AI review timestamps are invalid.');
-console.log(`AI review passed: ${reportPath}; contentHash=${contentHash}; changed=${files.length}; deleted=${deletedFiles.length}; findings=${report.findings.length}; verdict=${report.verdict}.`);
-""",
-    )
-    write(
-        ROOT,
-        "scripts/quality/review-fingerprint.mjs",
-        r"""import { execFileSync } from 'node:child_process';
-import { createHash } from 'node:crypto';
-import { readFile } from 'node:fs/promises';
-
-const args = process.argv.slice(2);
-const baseIndex = args.indexOf('--base');
-const baseInput = baseIndex >= 0 ? args[baseIndex + 1] : undefined;
-const excluded = (file) => file.startsWith('artifacts/ai-review/') || file.includes('/generated/');
-let files;
-let deletedFiles = [];
-let baseSha;
-let headSha;
-let gitDiffHash;
-if (baseInput) {
-  baseSha = execFileSync('git', ['rev-parse', baseInput], { encoding: 'utf8' }).trim();
-  headSha = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
-  if (baseSha === headSha) throw new Error('Review base and head must identify a non-empty review range.');
-  const range = `${baseSha}...${headSha}`;
-  const all = execFileSync('git', ['diff', '--name-only', '--diff-filter=ACDMRTUXB', range], { encoding: 'utf8' })
-    .split(/\r?\n/u).map((file) => file.replaceAll('\\', '/').trim()).filter(Boolean).filter((file) => !excluded(file));
-  deletedFiles = execFileSync('git', ['diff', '--name-only', '--diff-filter=D', range], { encoding: 'utf8' })
-    .split(/\r?\n/u).map((file) => file.replaceAll('\\', '/').trim()).filter(Boolean).filter((file) => !excluded(file)).sort();
-  files = all.filter((file) => !deletedFiles.includes(file)).sort();
-  gitDiffHash = createHash('sha256').update(execFileSync('git', ['diff', '--binary', range])).digest('hex');
-} else {
-  files = [...new Set(args.map((file) => file.replaceAll('\\', '/')))].sort();
-}
-if (files.length + deletedFiles.length === 0) throw new Error('Provide material changed files or a non-empty --base Git range to fingerprint.');
-const hash = createHash('sha256');
-for (const file of files) {
-  if (excluded(file)) throw new Error(`Cannot fingerprint generated/review output: ${file}`);
-  hash.update(file);
-  hash.update('\0');
-  hash.update(await readFile(file));
-  hash.update('\0');
-}
-const contentHash = hash.digest('hex');
-console.log(JSON.stringify({
-  files,
-  deletedFiles,
-  contentHash,
-  diffId: gitDiffHash ?? contentHash,
-  ...(gitDiffHash ? { baseSha, headSha, gitDiffHash } : {}),
-}, null, 2));
-""",
-    )
-    write(
-        ROOT,
-        "scripts/quality/check-secrets.mjs",
-        r"""import { readdir, readFile } from 'node:fs/promises';
-import path from 'node:path';
-
-const rules = [
-  ['AWS_KEY', /\b(?:AKIA|ASIA)[0-9A-Z]{16}\b/gu],
-  ['GITHUB_TOKEN', /\b(?:gh[pousr]_[A-Za-z0-9]{36,}|github_pat_[A-Za-z0-9_]{22,})\b/gu],
-  ['OPENAI_KEY', /\bsk-(?:proj-|svcacct-)?[A-Za-z0-9_-]{20,}\b/gu],
-  ['STRIPE_LIVE', /\b(?:sk|rk)_live_[A-Za-z0-9]{16,}\b/gu],
-  ['PRIVATE_KEY', /-----BEGIN (?:RSA |EC |DSA |OPENSSH )?PRIVATE KEY-----/gu],
-];
-const findings = [];
-async function walk(directory) {
-  for (const entry of await readdir(directory, { withFileTypes: true })) {
-    if (['node_modules', '.git', '.next', 'dist', 'coverage'].includes(entry.name)) continue;
-    const target = path.join(directory, entry.name);
-    if (entry.isDirectory()) await walk(target);
-    else {
-      const bytes = await readFile(target);
-      if (bytes.includes(0) || bytes.length > 2_000_000) continue;
-      const text = bytes.toString('utf8');
-      for (const [rule, pattern] of rules) {
-        pattern.lastIndex = 0;
-        for (const match of text.matchAll(pattern)) findings.push(`${rule}:${target.replaceAll('\\', '/')}:${text.slice(0, match.index).split('\n').length}`);
-      }
-    }
-  }
-}
-await walk('.');
-if (findings.length) throw new Error(`Secret scan found ${findings.length} high-confidence finding(s): ${findings.join(', ')}`);
-console.log('Secret scan passed; values are never printed.');
-""",
-    )
-    write(
-        ROOT,
-        "scripts/quality/check-sast.mjs",
-        r"""import { readdir, readFile } from 'node:fs/promises';
-import path from 'node:path';
-
-const rules = [
-  ['DYNAMIC_EVAL', /\beval\s*\(/gu],
-  ['DYNAMIC_FUNCTION', /\bnew\s+Function\s*\(/gu],
-  ['PRISMA_UNSAFE_RAW', /\$(?:queryRawUnsafe|executeRawUnsafe)\s*\(/gu],
-  ['RAW_HTML', /\bdangerouslySetInnerHTML\s*=/gu],
-  ['TLS_DISABLED', /NODE_TLS_REJECT_UNAUTHORIZED\s*=\s*['"]0['"]/gu],
-];
-const findings = [];
-async function walk(directory) {
-  for (const entry of await readdir(directory, { withFileTypes: true })) {
-    if (['node_modules', '.git', '.next', 'dist', 'generated'].includes(entry.name)) continue;
-    const target = path.join(directory, entry.name);
-    if (entry.isDirectory()) await walk(target);
-    else if (/\.[cm]?[jt]sx?$/u.test(entry.name) && !target.endsWith('check-sast.mjs')) {
-      const text = await readFile(target, 'utf8');
-      for (const [rule, pattern] of rules) {
-        pattern.lastIndex = 0;
-        for (const match of text.matchAll(pattern)) findings.push(`${rule}:${target.replaceAll('\\', '/')}:${text.slice(0, match.index).split('\n').length}`);
-      }
-    }
-  }
-}
-for (const root of ['apps', 'packages', 'scripts']) await walk(root);
-if (findings.length) throw new Error(`SAST found ${findings.length} dangerous sink(s): ${findings.join(', ')}`);
-console.log('SAST dangerous-sink scan passed.');
-""",
-    )
-    write(
-        ROOT,
-        "scripts/quality/check-sbom.mjs",
-        r"""import { spawnSync } from 'node:child_process';
-import { createHash } from 'node:crypto';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
-
-const artifact = 'artifacts/security/project.cdx.json';
-const pnpmCli = process.env.npm_execpath;
-if (!pnpmCli) throw new Error('Invoke the SBOM gate through pnpm.');
-const result = spawnSync(process.execPath, [pnpmCli, 'list', '-r', '--json', '--depth', 'Infinity'], { encoding: 'utf8', maxBuffer: 128 * 1024 * 1024 });
-if (result.status !== 0) throw new Error(result.stderr || 'pnpm list failed.');
-const projects = JSON.parse(result.stdout);
-const lockfile = await readFile('pnpm-lock.yaml');
-const inventory = new Map();
-function visit(name, item, type = 'library') {
-  if (!name || !item?.version) return;
-  const ref = `pkg:npm/${encodeURIComponent(name)}@${encodeURIComponent(item.version)}`;
-  if (!inventory.has(ref)) inventory.set(ref, { type, name, version: item.version, 'bom-ref': ref, purl: ref });
-  for (const kind of ['dependencies', 'optionalDependencies', 'devDependencies']) {
-    for (const [childName, child] of Object.entries(item[kind] ?? {})) visit(childName, child);
-  }
-}
-for (const project of projects) {
-  const type = project.path?.replaceAll('\\', '/').includes('/apps/') ? 'application' : 'library';
-  visit(project.name, project, type);
-}
-const components = [...inventory.values()].sort((a, b) => a['bom-ref'].localeCompare(b['bom-ref']));
-const bom = {
-  $schema: 'https://cyclonedx.org/schema/bom-1.5.schema.json',
-  bomFormat: 'CycloneDX',
-  specVersion: '1.5',
-  version: 1,
-  metadata: { properties: [{ name: 'project:lockfile:sha256', value: createHash('sha256').update(lockfile).digest('hex') }] },
-  components,
-};
-const expected = `${JSON.stringify(bom, null, 2)}\n`;
-if (process.argv.includes('--write')) {
-  await mkdir('artifacts/security', { recursive: true });
-  await writeFile(artifact, expected, 'utf8');
-  console.log(`SBOM generated: ${artifact}.`);
-} else {
-  const actual = await readFile(artifact, 'utf8');
-  if (actual !== expected) throw new Error('SBOM is missing, stale, or nondeterministic. Run pnpm security:sbom:generate.');
-  console.log(`SBOM passed: ${components.length} workspace component(s).`);
-}
-""",
+        "scripts/quality/check-change-record.mjs",
+        asset_text("check-change-record.mjs"),
     )
 
 
@@ -1603,6 +1076,15 @@ def create_deployment(profile: dict[str, Any]) -> None:
     name = profile["project"]["name"]
     node = profile["runtime"]["node"]
     pnpm = profile["runtime"]["pnpm"]
+    browser_checks_active = any(
+        profile["quality"].get(key) == "active"
+        for key in ["e2e", "crossBrowser", "accessibility", "visual"]
+    )
+    browser_install_step = (
+        "      - run: pnpm exec playwright install --with-deps chromium firefox webkit\n"
+        if browser_checks_active
+        else ""
+    )
     database_url = (
         f"mysql://app:app@127.0.0.1:3306/{name}"
         if profile["data"]["database"] == "mysql"
@@ -1852,7 +1334,7 @@ Before the first production release, add a reviewed target adapter for the selec
 
 Prefer forward recovery for migrations. Keep the previous immutable image tags available for application rollback. Never roll back across an incompatible migration without a reviewed recovery plan.
 
-Production deployment is an external side effect and requires user authorization. Human code review is optional; a passing independent AI review report bound to the current file contents is mandatory.
+Production deployment is an external side effect and requires user authorization. Resolve material findings from any risk- or policy-required review before release; no custom review artifact is required by default.
 """,
     )
     worker_release_step = (
@@ -1883,22 +1365,14 @@ Production deployment is an external side effect and requires user authorization
 
 on:
   workflow_dispatch:
-    inputs:
-      ai_review_report:
-        description: Committed AI review report path
-        required: true
-      base_sha:
-        description: Reviewed base commit SHA
-        required: true
 
 permissions:
   contents: read
   packages: write
 
 env:
-  AI_REVIEW_REPORT: ${{{{ inputs.ai_review_report }}}}
-  AI_REVIEW_BASE_SHA: ${{{{ inputs.base_sha }}}}
   DATABASE_URL: {database_url}
+  CHANGE_BASE_SHA: ${{{{ github.event.pull_request.base.sha || github.event.before }}}}
   REGISTRY: ghcr.io
   IMAGE_PREFIX: ${{{{ github.repository }}}}
   WEB_IMAGE: ghcr.io/${{{{ github.repository }}}}/web:${{{{ github.sha }}}}
@@ -1924,9 +1398,7 @@ jobs:
           node-version: {node}
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm exec playwright install --with-deps chromium firefox webkit
-      - run: pnpm security:sbom:generate
-      - run: pnpm migration:deploy
+{browser_install_step}      - run: pnpm migration:deploy
       - run: pnpm quality:full
       - run: pnpm deploy:preflight:production
       - uses: docker/login-action@v3
@@ -1971,6 +1443,15 @@ def create_ci(profile: dict[str, Any]) -> None:
     node = profile["runtime"]["node"]
     pnpm = profile["runtime"]["pnpm"]
     project_name = profile["project"]["name"]
+    browser_checks_active = any(
+        profile["quality"].get(key) == "active"
+        for key in ["e2e", "crossBrowser", "accessibility", "visual"]
+    )
+    browser_install_step = (
+        "      - run: pnpm exec playwright install --with-deps chromium firefox webkit\n"
+        if browser_checks_active
+        else ""
+    )
     database_url = (
         f"mysql://app:app@127.0.0.1:3306/{project_name}"
         if profile["data"]["database"] == "mysql"
@@ -2024,7 +1505,6 @@ permissions:
 
 env:
   DATABASE_URL: {database_url}
-  AI_REVIEW_BASE_SHA: ${{{{ github.event.pull_request.base.sha || github.event.before }}}}
 
 concurrency:
   group: quality-${{{{ github.workflow }}}}-${{{{ github.ref }}}}
@@ -2048,6 +1528,8 @@ jobs:
           node-version: {node}
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - if: github.event_name != 'workflow_dispatch'
+        run: pnpm change:check
       - run: pnpm quality:fast
 
   full:
@@ -2070,9 +1552,7 @@ jobs:
           node-version: {node}
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm exec playwright install --with-deps chromium firefox webkit
-      - run: pnpm migration:deploy
-      - run: pnpm security:sbom:generate
+{browser_install_step}      - run: pnpm migration:deploy
       - run: pnpm quality:full
 """,
     )
@@ -2103,11 +1583,6 @@ def validate_profile(profile: dict[str, Any]) -> None:
         "deployment.selectionStatus",
         "deployment.mode",
         "deployment.environments",
-        "review.aiRequired",
-        "review.aiRequiredFor",
-        "review.humanRequired",
-        "review.independence",
-        "review.blockingSeverities",
         "quality",
     ]:
         require(profile, dotted)
@@ -2138,13 +1613,6 @@ def validate_profile(profile: dict[str, Any]) -> None:
         fail("async.mode must be none, postgres-job, or outbox-sqs")
     if profile["apps"]["worker"] and profile["async"]["mode"] == "none":
         fail("apps.worker requires a non-none async.mode")
-    if profile["review"]["aiRequired"] is not True:
-        fail("review.aiRequired must be true for initialization, high-risk work, and releases")
-    required_review_scopes = {"init", "release", "high-risk", "product-significant"}
-    if not required_review_scopes.issubset(set(profile["review"]["aiRequiredFor"])):
-        fail("review.aiRequiredFor must cover init, release, high-risk, and product-significant work")
-    if profile["review"]["humanRequired"] is not False:
-        fail("review.humanRequired must default to false for VibeCoding")
     if profile["deployment"]["mode"] != "container-generic":
         fail("this generator supports only container-generic deployment; use a tailored generator for the user's selected deployment model")
 
@@ -2181,92 +1649,96 @@ def main() -> None:
     if profile["apps"]["admin"]:
         create_web(profile, "admin", 3002)
     create_docs(profile)
-    create_governance(profile)
     create_quality_scripts(profile)
     create_deployment(profile)
     create_ci(profile)
-    write(
-        ROOT,
-        "tests/browser/foundation.spec.ts",
-        (
-            "import { expect, test } from '@playwright/test';\n\n"
-            "test('renders the project foundation', async ({ page }) => {\n"
-            "  await page.goto('/');\n"
-            f"  await expect(page.getByRole('heading', {{ name: '{profile['project']['displayName']}' }})).toBeVisible();\n"
-            "});\n"
-        ),
-    )
-    write(
-        ROOT,
-        "tests/browser/foundation.a11y.spec.ts",
-        (
-            "import AxeBuilder from '@axe-core/playwright';\n"
-            "import { expect, test } from '@playwright/test';\n\n"
-            "test('has no serious or critical accessibility violations', async ({ page }) => {\n"
-            "  await page.goto('/');\n"
-            "  const result = await new AxeBuilder({ page }).analyze();\n"
-            "  expect(result.violations.filter((item) => ['serious', 'critical'].includes(item.impact ?? ''))).toEqual([]);\n"
-            "});\n"
-        ),
-    )
-    write(
-        ROOT,
-        "tests/browser/foundation.visual.spec.ts",
-        (
-            "import { expect, test } from '@playwright/test';\n\n"
-            "test('matches the approved visual baseline', async ({ page }) => {\n"
-            "  await page.goto('/');\n"
-            "  await expect(page).toHaveScreenshot('foundation.png', {\n"
-            "    fullPage: true,\n"
-            "    maxDiffPixelRatio: 0.01,\n"
-            "  });\n"
-            "});\n"
-        ),
-    )
-    if profile["data"]["database"] == "mysql":
-        integration_test = (
-            "import mysql, { type Connection, type RowDataPacket } from 'mysql2/promise';\n"
-            "import { afterAll, beforeAll, describe, expect, it } from 'vitest';\n\n"
-            "const databaseUrl = process.env.DATABASE_URL;\n"
-            "if (!databaseUrl) throw new Error('DATABASE_URL is required for integration tests.');\n"
-            "let connection: Connection;\n"
-            "beforeAll(async () => { connection = await mysql.createConnection(databaseUrl); });\n"
-            "afterAll(async () => { await connection.end(); });\n\n"
-            "describe('database integration', () => {\n"
-            "  it('connects to the authoritative database', async () => {\n"
-            "    const [rows] = await connection.query<RowDataPacket[]>('SELECT 1 AS value');\n"
-            "    expect(rows[0]?.value).toBe(1);\n"
-            "  });\n"
-            "  it('has an applied, failure-free migration history', async () => {\n"
-            "    const [rows] = await connection.query<RowDataPacket[]>(\"SELECT COUNT(*) AS count FROM _prisma_migrations WHERE finished_at IS NOT NULL AND rolled_back_at IS NULL\");\n"
-            "    expect(Number(rows[0]?.count)).toBeGreaterThan(0);\n"
-            "  });\n"
-            "});\n"
+    quality = profile["quality"]
+    if quality.get("e2e") == "active" or quality.get("crossBrowser") == "active":
+        write(
+            ROOT,
+            "tests/browser/foundation.spec.ts",
+            (
+                "import { expect, test } from '@playwright/test';\n\n"
+                "test('renders the project foundation', async ({ page }) => {\n"
+                "  await page.goto('/');\n"
+                f"  await expect(page.getByRole('heading', {{ name: '{profile['project']['displayName']}' }})).toBeVisible();\n"
+                "});\n"
+            ),
         )
-    else:
-        integration_test = (
-            "import { Client } from 'pg';\n"
-            "import { afterAll, beforeAll, describe, expect, it } from 'vitest';\n\n"
-            "const databaseUrl = process.env.DATABASE_URL;\n"
-            "if (!databaseUrl) throw new Error('DATABASE_URL is required for integration tests.');\n"
-            "const client = new Client({ connectionString: databaseUrl });\n"
-            "beforeAll(async () => { await client.connect(); });\n"
-            "afterAll(async () => { await client.end(); });\n\n"
-            "describe('database integration', () => {\n"
-            "  it('connects to the authoritative database', async () => {\n"
-            "    const result = await client.query<{ value: number }>('SELECT 1 AS value');\n"
-            "    expect(result.rows[0]?.value).toBe(1);\n"
-            "  });\n"
-            "  it('has an applied, failure-free migration history', async () => {\n"
-            "    const result = await client.query<{ count: string }>(\"SELECT COUNT(*)::text AS count FROM _prisma_migrations WHERE finished_at IS NOT NULL AND rolled_back_at IS NULL\");\n"
-            "    expect(Number(result.rows[0]?.count)).toBeGreaterThan(0);\n"
-            "  });\n"
-            "});\n"
+    if quality.get("accessibility") == "active":
+        write(
+            ROOT,
+            "tests/browser/foundation.a11y.spec.ts",
+            (
+                "import AxeBuilder from '@axe-core/playwright';\n"
+                "import { expect, test } from '@playwright/test';\n\n"
+                "test('has no serious or critical accessibility violations', async ({ page }) => {\n"
+                "  await page.goto('/');\n"
+                "  const result = await new AxeBuilder({ page }).analyze();\n"
+                "  expect(result.violations.filter((item) => ['serious', 'critical'].includes(item.impact ?? ''))).toEqual([]);\n"
+                "});\n"
+            ),
         )
-    write(ROOT, "tests/integration/database.test.ts", integration_test)
+    if quality.get("visual") == "active":
+        write(
+            ROOT,
+            "tests/browser/foundation.visual.spec.ts",
+            (
+                "import { expect, test } from '@playwright/test';\n\n"
+                "test('matches the approved visual baseline', async ({ page }) => {\n"
+                "  await page.goto('/');\n"
+                "  await expect(page).toHaveScreenshot('foundation.png', {\n"
+                "    fullPage: true,\n"
+                "    maxDiffPixelRatio: 0.01,\n"
+                "  });\n"
+                "});\n"
+            ),
+        )
+    if quality.get("integration") == "active":
+        if profile["data"]["database"] == "mysql":
+            integration_test = (
+                "import mysql, { type Connection, type RowDataPacket } from 'mysql2/promise';\n"
+                "import { afterAll, beforeAll, describe, expect, it } from 'vitest';\n\n"
+                "const databaseUrl = process.env.DATABASE_URL;\n"
+                "if (!databaseUrl) throw new Error('DATABASE_URL is required for integration tests.');\n"
+                "let connection: Connection;\n"
+                "beforeAll(async () => { connection = await mysql.createConnection(databaseUrl); });\n"
+                "afterAll(async () => { await connection.end(); });\n\n"
+                "describe('database integration', () => {\n"
+                "  it('connects to the authoritative database', async () => {\n"
+                "    const [rows] = await connection.query<RowDataPacket[]>('SELECT 1 AS value');\n"
+                "    expect(rows[0]?.value).toBe(1);\n"
+                "  });\n"
+                "  it('has an applied, failure-free migration history', async () => {\n"
+                "    const [rows] = await connection.query<RowDataPacket[]>(\"SELECT COUNT(*) AS count FROM _prisma_migrations WHERE finished_at IS NOT NULL AND rolled_back_at IS NULL\");\n"
+                "    expect(Number(rows[0]?.count)).toBeGreaterThan(0);\n"
+                "  });\n"
+                "});\n"
+            )
+        else:
+            integration_test = (
+                "import { Client } from 'pg';\n"
+                "import { afterAll, beforeAll, describe, expect, it } from 'vitest';\n\n"
+                "const databaseUrl = process.env.DATABASE_URL;\n"
+                "if (!databaseUrl) throw new Error('DATABASE_URL is required for integration tests.');\n"
+                "const client = new Client({ connectionString: databaseUrl });\n"
+                "beforeAll(async () => { await client.connect(); });\n"
+                "afterAll(async () => { await client.end(); });\n\n"
+                "describe('database integration', () => {\n"
+                "  it('connects to the authoritative database', async () => {\n"
+                "    const result = await client.query<{ value: number }>('SELECT 1 AS value');\n"
+                "    expect(result.rows[0]?.value).toBe(1);\n"
+                "  });\n"
+                "  it('has an applied, failure-free migration history', async () => {\n"
+                "    const result = await client.query<{ count: string }>(\"SELECT COUNT(*)::text AS count FROM _prisma_migrations WHERE finished_at IS NOT NULL AND rolled_back_at IS NULL\");\n"
+                "    expect(Number(result.rows[0]?.count)).toBeGreaterThan(0);\n"
+                "  });\n"
+                "});\n"
+            )
+        write(ROOT, "tests/integration/database.test.ts", integration_test)
 
     print(f"[OK] Created standard project foundation at {output}")
-    print("[NEXT] Complete product BASELINE_GAP items, then run pnpm install, pnpm format, and pnpm quality before the first vertical slice.")
+    print("[NEXT] Complete the product inputs, then run pnpm install, pnpm format, and pnpm quality before the first vertical slice.")
 
 
 if __name__ == "__main__":

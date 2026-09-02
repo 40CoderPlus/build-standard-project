@@ -13,10 +13,11 @@ Create `.project/standard-project.json` as the machine-readable record of produc
 - primary data, storage, authentication, async, realtime, search, and analytics choices when applicable
 - `deployment.selectionStatus`, `mode`, `environments`
 - `quality`
-- `review.aiRequired`, `review.aiRequiredFor`, `review.humanRequired`
 - `decisions`
 
 The bundled modular-monolith generator additionally requires the existing `runtime`, `web`, `api`, `data`, `apps`, `async`, `storage`, and `auth` fields shown in the example. Other approved architectures may use a different profile shape under those sections; do not add irrelevant fields merely to resemble the example.
+
+`quality` records only optional suites (`integration`, `e2e`, `crossBrowser`, `accessibility`, and `visual`). Keep them `deferred` until the approved product slice needs them. Formatting, lint, types, unit tests, contracts, migration structure, and build are the non-configurable baseline.
 
 ## Selection policy
 
@@ -43,7 +44,7 @@ Component choices after approval:
 - Identity adapter boundary always; choose Better Auth only after session, provider, account-linking, and deployment requirements are known.
 - S3-compatible storage only when the product owns binary assets.
 - Choose managed/serverless, container-generic, orchestrated containers, or another deployment model according to the approved option. Do not generate container assets for a managed/serverless choice unless they serve a stated portability need.
-- Independent AI review for initialization, release, and high-risk/product-significant work; focused final-diff review plus relevant unit tests for routine VibeCoding. Human review remains optional by default.
+- Keep review policy outside the architecture profile unless the organization already has an explicit policy. Routine VibeCoding uses final-diff review plus relevant tests; release or high-risk work may request a focused independent review.
 
 ## Decision records
 

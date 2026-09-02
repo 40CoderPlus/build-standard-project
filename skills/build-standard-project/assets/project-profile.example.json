@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "1.3.0",
+  "schemaVersion": "1.4.0",
   "project": {
     "name": "example-product",
     "displayName": "Example Product",
@@ -69,23 +69,12 @@
     "mode": "container-generic",
     "environments": ["development", "staging", "production"]
   },
-  "review": {
-    "aiRequired": true,
-    "aiRequiredFor": ["init", "release", "high-risk", "product-significant"],
-    "humanRequired": false,
-    "independence": "separate-agent-or-fresh-context",
-    "blockingSeverities": ["blocker", "high"]
-  },
   "quality": {
-    "unit": "active",
-    "integration": "active",
-    "contract": "active",
-    "migration": "active",
-    "e2e": "active",
-    "crossBrowser": "active",
-    "accessibility": "active",
-    "visual": "active",
-    "security": "active"
+    "integration": "deferred",
+    "e2e": "deferred",
+    "crossBrowser": "deferred",
+    "accessibility": "deferred",
+    "visual": "deferred"
   },
   "decisions": [
     {

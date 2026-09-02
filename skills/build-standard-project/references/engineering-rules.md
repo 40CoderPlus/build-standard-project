@@ -1,78 +1,40 @@
 # Engineering rules
 
-## Repository authority
+## Repository and change discipline
 
-- Make root `AGENTS.md` canonical for humans and AI tools.
-- Make tool-specific instruction files point to `AGENTS.md`; do not duplicate business rules.
-- Preserve approved product, architecture, API, database, design, and quality baselines with an explicit authority order.
-- Update code and directly affected tests together. Update contracts, migrations, documentation, and traceability only when the change affects them.
-- Assign a stable requirement/optimization ID for new features, product-significant/high-risk behavior, initialization baselines, and release-tracked work. Routine fixes and optimizations do not require an ID.
+- Keep root `AGENTS.md` as the canonical AI instruction source. Add tool-specific adapters only when the project actually uses those tools, and keep them as short pointers.
+- Preserve unrelated and uncommitted user work. Change only what the current goal requires.
+- Reuse existing modules and conventions before adding dependencies or abstractions.
+- Record every requirement change, optimization, bug fix, or behavior-affecting maintenance change in the repository's single change record.
+- Update directly affected contracts, migrations, docs, and tests with behavior changes.
+- Add or update a directly affected test for behavior-source changes. Every bug fix requires a regression test that fails for the reported behavior before the fix and passes afterward.
+- Do not stage, commit, push, deploy, rewrite history, or perform other external/destructive actions without authorization.
+- Never fabricate a passing check or weaken a test merely to make it green.
 
-## Change discipline
+## Code and boundaries
 
-- Inspect repository state and preserve unrelated or uncommitted user changes.
-- Modify only what the current goal requires.
-- Prefer reuse and extension over parallel modules or rewrites.
-- Do not add dependencies without documenting need, alternatives, maintenance, license, bundle/runtime cost, and security impact.
-- Do not stage, commit, amend, rebase, push, tag, or rewrite history unless explicitly requested.
-- Never bypass hooks or CI, fabricate results, or lower a threshold to make a failure green.
-- For routine changes, review the final diff and run relevant unit tests. Require independent AI review for initialization, release, product-significant/high-risk changes, or explicit policy. Human review is optional and non-blocking unless external authority requires it.
+- Use the selected language/framework's safe defaults and existing lint/type configuration.
+- Validate untrusted input at runtime and keep public contracts independent from persistence/provider types.
+- Keep browser code away from databases, private infrastructure SDKs, server configuration, and secrets.
+- Keep modules cohesive. Add a new service, package, worker, cache, or queue only when approved behavior needs the boundary.
 
-## Language and boundaries
+## Data and security
 
-- Use the strict/safe modes and static analysis appropriate to the user-selected language and framework.
-- When TypeScript is selected, enable `strict`, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`, `noImplicitOverride`, and fallthrough protection; reject explicit `any` and validate `unknown` at boundaries.
-- Use consistent module/package boundaries and imports.
-- Keep contracts independent of frameworks, Prisma, Node-private APIs, and provider SDKs.
-- Keep browser code from importing database clients, AWS/private infrastructure SDKs, server configuration, or secrets.
-- Enforce boundaries with the selected ecosystem's available tooling.
+- Enforce authorization server-side and protect secrets/private data.
+- Add idempotency, concurrency control, audit, retention, or recovery behavior where the domain risk requires it; do not scaffold them speculatively for every write.
+- Use migrations for schema changes and preserve compatibility or provide an explicit migration path when a public/data contract changes.
+- Apply CSRF, CSP, rate limits, upload validation, signed URLs, sanitization, MFA, or immutable audit only to the surfaces that need them.
+- Keep real secrets and unnecessary personal data out of Git, logs, fixtures, screenshots, analytics, and browser bundles.
 
-## API and state
+## UI and operations
 
-- Validate DTOs at runtime.
-- Declare authorization, idempotency, concurrency control, transaction, audit, and stable errors for every write endpoint.
-- Use optimistic locking or an equivalent rule where concurrent editing can lose data.
-- Verify webhook signatures, deduplicate event IDs, tolerate out-of-order delivery, and make consumers idempotent.
-- Version breaking API/event changes and provide migration/compatibility behavior.
-- Do not return provider errors as successful domain outcomes.
+- Implement the loading, empty, error, permission, retry, responsive, and accessibility states the affected flow actually exposes.
+- Keep visible copy and locale handling consistent with the approved product baseline.
+- Add logs, metrics, health/readiness, smoke tests, and recovery procedures in proportion to operational risk and the selected deployment model.
 
-## Configuration and secrets
+## Validation and handoff
 
-- Validate configuration at startup and fail closed for missing critical values.
-- Keep `.env.example` complete but limited to names, documentation, and fake values.
-- Keep secrets out of Git, logs, snapshots, OpenAPI examples, analytics, and browser bundles.
-- Limit `NEXT_PUBLIC_*` to deliberately public configuration.
-- Version business rules as data/configuration. Freeze rule snapshots for open workflows so future configuration does not rewrite history.
-
-## Security, privacy, and audit
-
-- Enforce authorization server-side with authentication, RBAC, ownership, entitlement/certification, and task grants as required.
-- Apply input validation, output encoding, CSP, CSRF, rate limits, upload validation, signed URLs, and HTML sanitization as relevant.
-- Use individual admin identities, MFA when risk requires it, re-authorization, reason capture, and immutable audit for sensitive actions.
-- Do not log tokens, secrets, full private content, payment data, tax/bank identity, hidden review relations, or unnecessary PII.
-- Define retention, deletion, export, withdrawal, recovery, and legal hold behavior.
-
-## UI and internationalization
-
-- Treat the approved design system as the token authority. Use the user-selected component system for behavior and structure, not generic branding.
-- Implement loading, empty, error, permission, processing, success, disabled, hover, focus, destructive, retry, cancel, and degraded states as applicable.
-- Keep visible copy in locale dictionaries. Maintain functional and numeric equivalence across supported locales.
-- Meet WCAG 2.2 AA for supported flows: semantic names, keyboard navigation, visible focus, contrast, screen-reader behavior, reduced motion, and non-color state cues.
-- Define responsive evidence at representative mobile, tablet, and desktop widths.
-- Do not recompute authoritative public metrics, ranks, balances, or permissions in browser components.
-
-## Observability and operations
-
-- Use structured logs with request/trace/job IDs and stable error codes.
-- Separate expected 4xx user errors from 5xx system failures; keep internal causes out of public responses.
-- Track latency, error rate, dependency failures, database/query health, job backlog, retries, dead letters, upload failures, and domain-critical outcomes.
-- Provide health/readiness checks, migration procedure, rollback/forward recovery, backup restore evidence, and smoke tests.
-
-## Git quality
-
-- Use Conventional Commits: `<type>(<scope>)!: <imperative English summary>`.
-- Keep each change focused on one coherent intent.
-- Keep dependency refreshes and repository-wide formatting separate.
-- Commit generated artifacts with their source/schema and review their diffs.
-- A valid handoff reports outcome, changed files/behavior, migrations/configuration, checks and exact results, untested areas, risks, and next action.
-- Include requirement status and AI-review/deployment evidence only when the selected route requires them. Keep routine handoffs concise.
+- Routine changes: update the concise change record, review the final diff, and run the narrowest relevant affected test.
+- Initialization: run the ordinary repository quality baseline once after the scaffold is stable.
+- Release/high-risk changes: add only directly affected integration, browser, migration, security, deployment, or independent-review evidence.
+- Report the outcome, checks actually run, material risk, and required next action. Keep routine handoffs short.

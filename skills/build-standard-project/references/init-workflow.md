@@ -6,7 +6,7 @@ Read only for explicit Init/adoption.
 
 Read [product-handoff.md](product-handoff.md), approved product/design/contracts, and existing repository rules. Infer product scale, risk, workload, budget, team, operations, and deployment constraints. Ask one batched question only for gaps that change architecture; otherwise proceed with stated assumptions.
 
-Stop with `BASELINE_GAP` only for conflicting authority on behavior, permissions, money, privacy/data, AI boundaries, or release scope.
+Stop and report a conflict only when authoritative sources disagree on behavior, permissions, money, privacy/data, AI boundaries, or release scope.
 
 ## 2. Get one user decision
 
@@ -32,10 +32,10 @@ pnpm format
 pnpm quality
 ```
 
-For another selected option, generate it directly or extend the generator; never change the profile to fit the template. Use [generation-contract.md](generation-contract.md) for outcomes and [engineering-rules.md](engineering-rules.md), [ai-rules.md](ai-rules.md), [quality-gates.md](quality-gates.md), and [deployment-system.md](deployment-system.md) only as applicable to the chosen stack. Preserve one canonical root `AGENTS.md` and the Routine fast path.
+For another selected option, generate it directly or extend the generator; never change the profile to fit the template. Use [generation-contract.md](generation-contract.md) for outcomes and [engineering-rules.md](engineering-rules.md), [ai-rules.md](ai-rules.md), [quality-checks.md](quality-checks.md), and [deployment-system.md](deployment-system.md) only as applicable to the chosen stack. Preserve one canonical root `AGENTS.md` and the Routine fast path.
 
 ## 4. Verify once
 
-Implement one representative vertical slice. Use [requirement-change-system.md](requirement-change-system.md) for the initialization baseline, run applicable initialization gates once after implementation stabilizes, and perform one independent review using [ai-review-system.md](ai-review-system.md). Fix findings and rerun only affected checks.
+Implement one representative vertical slice, add its concise record and affected test as described in [product-change-notes.md](product-change-notes.md), then run `pnpm quality` once after implementation stabilizes. Add only checks justified by the slice's affected boundaries. Use [independent-review.md](independent-review.md) only for release, high-risk boundaries, or an explicit request.
 
 Report the selected option, delivered foundation, checks, material findings/gaps, and required user action. Omit process narration.

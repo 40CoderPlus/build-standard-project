@@ -2,7 +2,7 @@
 
 面向 VibeCoding 的 Codex 工程 Skill：保留必要质量底线，同时避免把普通修复和优化升级成复杂工程流程。
 
-V1.6 的核心原则：
+V1.8 的核心原则：
 
 - 普通 Bug、优化、UI 调整和重构默认走 Routine 快路径；
 - Routine 只要求最小完整改动、最终 diff 走查和最相关单元测试；
@@ -10,6 +10,9 @@ V1.6 的核心原则：
 - 技术与部署方案根据产品特性选择，默认推荐最小充分方案；
 - Redis、队列、微服务、Kubernetes、多地域等复杂组件必须由用户明确选择；
 - 额外流程和验证必须有实际风险依据，效率本身也是质量的一部分。
+- 基础质量只保留常规格式、Lint、类型、测试、契约、迁移和构建，不生成指纹、Git diff 哈希、需求台账校验、Agent 文案校验或机器可读 AI Review 证明。
+- 需求变更、优化和 Bug 使用一份简短的 `docs/changes.md` 记录；源码变更必须带直接相关测试，Bug 必须带回归测试，并由 CI 做轻量检查。
+- 旧项目安装新 Skill 不等于项目规则已迁移；1.1—1.6 项目提供显式迁移检查，避免遗留 `quality:full`、覆盖率、指纹和 AI Review 继续拖慢小改动。
 
 ## 工作模式
 
@@ -115,12 +118,21 @@ Skill 不再假定所有项目使用同一套架构。Init 时会根据产品规
 Routine 的固定底线：
 
 1. 检查相关代码和约束；
-2. 完成最小完整改动；
-3. 走查最终 diff；
-4. 运行最相关的单元测试；
-5. 只重跑失败或被后续修改影响的检查。
+2. 在唯一的变更记录中写清需求变更、优化或 Bug；
+3. 完成最小完整改动，并补直接相关测试；
+4. Bug 用能复现原问题的回归测试锁住；
+5. 走查最终 diff，运行最相关的测试；
+6. 只重跑失败或被后续修改影响的检查。
 
-安全、隐私、资金、权限、不可逆数据、迁移、公共契约、共享基础设施和发布边界按实际风险增加验证。普通任务默认不要求 REQ/OPT、独立 Reviewer、AI Review 报告、全量 E2E、视觉测试或部署证据。
+本地 Routine 必须优先运行单个受影响测试文件，例如：
+
+```bash
+pnpm test -- path/to/affected.test.ts
+```
+
+普通小改动不运行 `quality`、`quality:full`、覆盖率、E2E、视觉、部署或独立 Review。`quality:fast` 是 CI 或确实需要整套单元测试反馈时的后备命令。
+
+安全、隐私、资金、权限、不可逆数据、迁移、公共契约、共享基础设施和发布边界按实际风险增加验证。普通任务只保留一份简短变更记录和直接相关测试，不要求平行需求台账、独立 Reviewer、Review 文件、全量 E2E、视觉测试或部署证据；高风险或发布审查直接记录在现有任务、PR 或 Issue 中。
 
 ## 给其他 AI Agent 使用
 
@@ -144,6 +156,31 @@ python skills/build-standard-project/scripts/scaffold_project.py \
 
 生成器只支持其明确声明的架构与部署模式；其他选择应使用针对该方案的实现，而不是强行套用复杂模板。
 
+### 升级 1.1—1.6 生成的旧项目
+
+安装或升级 Skill 只更新 Codex 的 Skill 目录，不会自动重写已有项目里的 `AGENTS.md`、`package.json` 和 CI。先只检查迁移计划：
+
+```bash
+python skills/build-standard-project/scripts/migrate_legacy_project.py \
+  --project path/to/existing-project
+```
+
+确认识别的是旧版生成规则后，再显式应用：
+
+```bash
+python skills/build-standard-project/scripts/migrate_legacy_project.py \
+  --project path/to/existing-project \
+  --apply
+```
+
+迁移器只处理已知的 1.1—1.6 生成模板；遇到自定义 `AGENTS.md` 会停止，不会覆盖项目规则。
+
+仓库自身的轻量回归测试：
+
+```bash
+python -m unittest discover -s tests -v
+```
+
 ## 更新
 
 ```bash
@@ -154,7 +191,9 @@ git pull --ff-only
 
 ## 当前版本
 
-`1.6.0`
+`1.8.1`
+
+本版本的需求与验证记录见 [CHANGELOG.md](CHANGELOG.md)。
 
 ## License
 

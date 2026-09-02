@@ -18,7 +18,7 @@ Capture:
 10. Design-system tokens, approved high-fidelity screens, interaction prototype, and responsive rules.
 11. Product metrics and analytics governance.
 12. Expected users/traffic, latency/availability objectives, growth uncertainty, budget, deadline, team skills, deployment target, compliance, recovery, and operational ownership.
-13. AI review independence, required evidence, finding severity, and exception policy.
+13. Existing organizational review or compliance policies that materially constrain delivery.
 
 Before scaffolding, normally present the minimum sufficient option and at most one justified upgrade, then obtain one user decision. Show a complex third option only when approved requirements already require it. Infer from approved inputs first and batch only architecture-changing gaps. Missing forecasts may remain ranges; missing user approval may not be treated as a default architecture decision.
 
@@ -49,7 +49,7 @@ If they contradict approved intent, record and fix the contradiction; do not sil
 
 For each feature, record:
 
-- feature/acceptance ID;
+- existing issue or feature reference when available;
 - product/module owner;
 - primary user and job;
 - phase: now, next, later, or out of scope;
@@ -61,19 +61,6 @@ For each feature, record:
 - meaningful outcome metric;
 - dependencies and fallback;
 - UI, API, data, job, event, and test landing points.
-- AI review and deployment/recovery evidence landing points.
+- deployment and recovery evidence when the feature affects them.
 
-## BASELINE_GAP format
-
-```text
-BASELINE_GAP-<number>
-Sources:
-Conflict:
-Behavioral impact:
-Security/data impact:
-Options:
-Decision owner:
-Blocking scope:
-```
-
-Do not use placeholders on a P0 path when the approved inputs already contain the answer.
+When authoritative inputs conflict, report the sources, behavioral/security impact, options, decision owner, and blocked scope in plain language. Do not use placeholders on a critical path when the approved inputs already contain the answer.

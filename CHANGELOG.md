@@ -1,5 +1,12 @@
 # Change record
 
+## 2026-09-03 — Install for Codex and compatible agents
+
+- Type: bug
+- Change: Repository installers now place the Skill in both the Codex skills directory and the shared `~/.agents/skills` directory, with independent upgrade backups.
+- Tests: not run — installer behavior change was requested without a test run.
+- Source: direct report that Anthropic-compatible agents did not receive the installation.
+
 ## 2026-08-29 — Stop legacy projects from running Full for small Bugs
 
 - Type: bug

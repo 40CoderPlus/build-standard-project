@@ -36,7 +36,7 @@ install.sh
 
 真正的 Skill 位于 `skills/build-standard-project/`。仓库根目录只保存安装和开源说明。
 
-## 安装到 Codex
+## 安装到 Codex 与其他 Agent
 
 ### 使用 Codex Skill Installer
 
@@ -58,7 +58,7 @@ python3 "${CODEX_HOME:-$HOME/.codex}/skills/.system/skill-installer/scripts/inst
   --ref main
 ```
 
-官方 Installer 在目标目录已存在时会停止。升级已有安装时使用仓库安装脚本。
+官方 Codex Installer 只安装到 Codex 目录，并且在目标目录已存在时会停止。需要同时供 Anthropic 等兼容 Agent 使用，或升级已有安装时，使用下面的仓库安装脚本。
 
 ### 克隆并安装或升级
 
@@ -79,7 +79,12 @@ chmod +x install.sh
 ./install.sh
 ```
 
-安装脚本会在升级前备份旧版本，并安装到 `$CODEX_HOME/skills/build-standard-project`。重新启动 Codex 或开启新任务后生效。
+安装脚本会在升级前分别备份旧版本，并同时安装到：
+
+- Codex：`${CODEX_HOME:-~/.codex}/skills/build-standard-project`
+- Anthropic 等兼容 Agent：`${AGENTS_HOME:-~/.agents}/skills/build-standard-project`
+
+Windows 下默认对应 `%USERPROFILE%\.codex\skills` 和 `%USERPROFILE%\.agents\skills`。重新启动相应 Agent 或开启新任务后生效。
 
 ## 使用方式
 
@@ -191,7 +196,7 @@ git pull --ff-only
 
 ## 当前版本
 
-`1.8.1`
+`1.8.2`
 
 本版本的需求与验证记录见 [CHANGELOG.md](CHANGELOG.md)。
 

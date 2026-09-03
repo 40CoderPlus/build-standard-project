@@ -18,6 +18,7 @@ The Routine path is the default for scoped fixes, optimizations, UI changes, and
 
 ## Validate
 
+- Git hooks are the commit-time baseline: staged source and document files must pass their configured formatter/linter, and commit subjects must follow Conventional Commits. Keep these hooks fast; type checks, tests, builds, browser checks, and release checks stay on the risk-based paths below.
 - Every behavior-affecting source change must add or update a directly affected test and cite that test in `docs/changes.md`. Every bug fix must add a regression test that reproduces the failure before the fix and passes after it.
 - Routine: run the directly affected test file, for example `pnpm test -- path/to/affected.test.ts`, then review the final diff. Do not run `pnpm quality`, `pnpm quality:full`, coverage, E2E, visual, deployment, or independent-review checks for an ordinary scoped change. Use `pnpm quality:fast` only when no narrower unit-test command exists or broader unit feedback is explicitly needed.
 - CI runs `pnpm change:check` and the unit-test suite. Add other checks only for an affected risk or explicit request.

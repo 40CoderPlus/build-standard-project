@@ -34,7 +34,7 @@ install_skill() {
     exit 1
   fi
 
-  printf '%s\n' "Installed build-standard-project 1.8.2 for $INSTALL_NAME to $TARGET"
+  printf '%s\n' "Installed build-standard-project 1.8.3 for $INSTALL_NAME to $TARGET"
   if [ -n "$BACKUP" ]; then
     printf '%s\n' "Previous installation backed up to $BACKUP"
   fi

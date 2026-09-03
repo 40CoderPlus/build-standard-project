@@ -17,7 +17,7 @@ Create `.project/standard-project.json` as the machine-readable record of produc
 
 The bundled modular-monolith generator additionally requires the existing `runtime`, `web`, `api`, `data`, `apps`, `async`, `storage`, and `auth` fields shown in the example. Other approved architectures may use a different profile shape under those sections; do not add irrelevant fields merely to resemble the example.
 
-`quality` records only optional suites (`integration`, `e2e`, `crossBrowser`, `accessibility`, and `visual`). Keep them `deferred` until the approved product slice needs them. Formatting, lint, types, unit tests, contracts, migration structure, and build are the non-configurable baseline.
+`quality` records both the non-configurable engineering baseline and optional suites. The baseline requires staged-file format/lint hooks, Conventional Commit subjects, one change record, directly affected tests, and Bug regression tests; the generator fills these values for compatible older profiles and rejects attempts to disable them. Keep optional `integration`, `e2e`, `crossBrowser`, `accessibility`, and `visual` suites `deferred` until the approved product slice needs them. Types, contracts, migration structure, and build remain standard commands outside the commit hook.
 
 ## Selection policy
 

@@ -13,6 +13,7 @@ A generated standard project must include:
 - deployment configuration for the user-selected model, health/readiness equivalents, smoke tests, and proportional recovery instructions. Container files are required only when a container option was selected.
 - `.env.example`: names and fake values only.
 - pinned runtime/package-manager/dependency resolution and the selected ecosystem's lint, format, test, and CI configuration.
+- repository-local commit hooks that enforce staged format/lint and the selected commit-message convention without running the full quality suite.
 - app/package boundaries selected by the approved profile; do not generate unused applications or infrastructure packages.
 
 ## Source layout examples
@@ -49,8 +50,9 @@ The foundation is accepted when:
 6. one health/readiness flow and one vertical product slice have clear UI/API/data/test landing points;
 7. secrets, private data, provider keys, and server infrastructure cannot enter the browser bundle;
 8. `quality` and the selected deployment preflight are executable;
-9. `change:check` enforces a new change entry plus a cited changed test for behavior-source changes, and bug entries cite a regression test;
-10. exact validation evidence is reported.
+9. dependency installation activates repository-local commit hooks for staged format/lint and Conventional Commit subjects;
+10. `change:check` enforces a new change entry plus a cited changed test for behavior-source changes, and bug entries cite a regression test;
+11. exact validation evidence is reported.
 
 The first initialization sequence is `pnpm install`, `pnpm format`, then `pnpm quality`. Formatting is an explicit one-time normalization step because the deterministic generator does not depend on an already-installed JavaScript toolchain.
 

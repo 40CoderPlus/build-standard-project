@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "1.4.0",
+  "schemaVersion": "1.5.0",
   "project": {
     "name": "example-product",
     "displayName": "Example Product",
@@ -70,6 +70,14 @@
     "environments": ["development", "staging", "production"]
   },
   "quality": {
+    "commit": {
+      "stagedFormat": "required",
+      "stagedLint": "required",
+      "messageConvention": "conventional-commits"
+    },
+    "changeTracking": "required",
+    "affectedTests": "required",
+    "bugRegressionTests": "required",
     "integration": "deferred",
     "e2e": "deferred",
     "crossBrowser": "deferred",

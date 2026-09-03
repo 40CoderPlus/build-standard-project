@@ -7,6 +7,13 @@
 - Tests: manual package validation passed for Skill frontmatter, PowerShell syntax, shell syntax, version consistency, and `git diff --check`. The bundled `quick_validate.py` could not run because its Python environment does not include PyYAML.
 - Source: direct request and supplied naming prompt/screenshot.
 
+## 2026-09-03 — Add fast commit-time quality gates
+
+- Type: requirement
+- Change: Initialization now records a non-configurable engineering-quality baseline in the project profile and architecture documentation. Generated and explicitly migrated projects install repository-local Git hooks that check formatting and lint only for relevant staged files, enforce Conventional Commit subjects, and establish change/test/regression expectations from the foundation. Full type, test, build, and browser suites remain outside the commit path.
+- Tests: not run — the initialization-quality baseline update was requested without a test run.
+- Source: direct request for basic quality checks at commit time.
+
 ## 2026-09-03 — Install for Codex and compatible agents
 
 - Type: bug

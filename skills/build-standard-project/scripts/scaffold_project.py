@@ -14,6 +14,16 @@ from typing import Any
 NAME_RE = re.compile(r"^[a-z][a-z0-9-]*$")
 SCOPE_RE = re.compile(r"^[a-z][a-z0-9-]*$")
 ASSETS = Path(__file__).resolve().parents[1] / "assets"
+QUALITY_BASELINE = {
+    "commit": {
+        "stagedFormat": "required",
+        "stagedLint": "required",
+        "messageConvention": "conventional-commits",
+    },
+    "changeTracking": "required",
+    "affectedTests": "required",
+    "bugRegressionTests": "required",
+}
 
 
 def fail(message: str) -> None:
@@ -131,6 +141,7 @@ def create_root(profile: dict[str, Any]) -> None:
     )
 
     scripts = {
+        "prepare": "node scripts/quality/install-git-hooks.mjs",
         "dev": "turbo run dev --parallel",
         "build": "turbo run build",
         "contract:check": "turbo run contract:check",
@@ -145,6 +156,8 @@ def create_root(profile: dict[str, Any]) -> None:
         "typecheck": "tsc --noEmit && turbo run typecheck",
         "test": "vitest run",
         "quality:fast": "pnpm test",
+        "commit:check": "node scripts/quality/check-staged.mjs",
+        "commit:message": "node scripts/quality/check-commit-message.mjs",
         "change:check": "node scripts/quality/check-change-record.mjs",
         "migration:check": "node scripts/quality/check-migrations.mjs",
         "migration:deploy": f"pnpm --filter @{scope}/db migrate:deploy",
@@ -1025,6 +1038,12 @@ Profile: `.project/standard-project.json`
 - Storage: {profile['storage']['mode']}.
 - Auth: adapter boundary; selected mode `{profile['auth']['mode']}`.
 
+## Engineering quality boundary
+
+- Commit: relevant staged files must pass format and lint checks; commit subjects use Conventional Commits.
+- Change: every behavior change has one concise record and a directly affected test; every Bug has a regression test.
+- CI/release: broader type, test, build, browser, migration, security, and deployment checks run only at their affected boundary.
+
 This repository implements the approved modular-monolith/container option. Revisit it only when the recorded trigger is met and the user approves a different option. Add detailed module, data, state, provider, upload, and failure-flow diagrams with the first vertical slice.
 """,
     )
@@ -1034,6 +1053,8 @@ This repository implements the approved modular-monolith/container option. Revis
         """# Engineering baseline
 
 Use strict TypeScript, runtime validation, stable contracts, migration-only schema changes, structured logs, explicit configuration validation, and Conventional Commits.
+
+`pnpm install` activates the repository-local commit hooks. They check only relevant staged files for format/lint and validate the commit subject.
 
 Root gates: `pnpm quality:fast` for routine unit-test feedback, `pnpm change:check -- --base <sha>` for change-record/test traceability, `pnpm quality` for the standard format/lint/type/test/build baseline, and `pnpm quality:full` for directly affected integration, browser, security, migration, and deployment checks.
 
@@ -1069,6 +1090,23 @@ console.log(`Migration structure and schema passed: ${{migrations.length}} migra
         "scripts/quality/check-change-record.mjs",
         asset_text("check-change-record.mjs"),
     )
+    write(
+        ROOT,
+        "scripts/quality/check-staged.mjs",
+        asset_text("check-staged.mjs"),
+    )
+    write(
+        ROOT,
+        "scripts/quality/check-commit-message.mjs",
+        asset_text("check-commit-message.mjs"),
+    )
+    write(
+        ROOT,
+        "scripts/quality/install-git-hooks.mjs",
+        asset_text("install-git-hooks.mjs"),
+    )
+    write(ROOT, ".githooks/pre-commit", asset_text("pre-commit"))
+    write(ROOT, ".githooks/commit-msg", asset_text("commit-msg"))
 
 
 def create_deployment(profile: dict[str, Any]) -> None:
@@ -1601,6 +1639,23 @@ def validate_profile(profile: dict[str, Any]) -> None:
         fail("architecture.consideredOptions must record at least two product-fit options")
     if profile["deployment"]["selectionStatus"] != "approved":
         fail("deployment selection is pending; obtain the user's deployment decision before scaffolding")
+    quality = profile["quality"]
+    if not isinstance(quality, dict):
+        fail("quality must be an object")
+    commit = quality.get("commit", {})
+    if not isinstance(commit, dict):
+        fail("quality.commit must be an object")
+    for name, expected in QUALITY_BASELINE["commit"].items():
+        if name in commit and commit[name] != expected:
+            fail(f"quality.commit.{name} is a non-configurable initialization baseline")
+        commit[name] = expected
+    quality["commit"] = commit
+    for name, expected in QUALITY_BASELINE.items():
+        if name == "commit":
+            continue
+        if name in quality and quality[name] != expected:
+            fail(f"quality.{name} is a non-configurable initialization baseline")
+        quality[name] = expected
     if architecture["selectedOption"] != "modular-monolith":
         fail("this generator supports only the modular-monolith option; use a tailored generator for the user's selected architecture")
     if profile["web"]["enabled"] is not True or profile["api"]["enabled"] is not True:

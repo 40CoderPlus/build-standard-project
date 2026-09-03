@@ -132,6 +132,8 @@ Skill 不再假定所有项目使用同一套架构。Init 时会根据产品规
 
 用户确认前不会引入复杂基础设施。说明主要成本、限制和风险后，由用户决定产品、架构与运维取舍。
 
+无论选择哪种架构，初始化都会直接建立不可关闭的工程基础：commit 格式与暂存文件格式/Lint 门禁、唯一变更记录、直接相关测试、Bug 回归测试，以及与技术栈匹配的 CI/发布命令。这些基础不作为可选架构问题反复询问。
+
 ## 质量策略
 
 Routine 的固定底线：
@@ -150,6 +152,8 @@ pnpm test -- path/to/affected.test.ts
 ```
 
 普通小改动不运行 `quality`、`quality:full`、覆盖率、E2E、视觉、部署或独立 Review。`quality:fast` 是 CI 或确实需要整套单元测试反馈时的后备命令。
+
+每次 commit 前只检查相关暂存文件的格式与 Lint，并校验 Conventional Commit 信息。类型检查、测试、构建和 E2E 仍按改动风险执行，不塞进 commit 钩子。
 
 安全、隐私、资金、权限、不可逆数据、迁移、公共契约、共享基础设施和发布边界按实际风险增加验证。普通任务只保留一份简短变更记录和直接相关测试，不要求平行需求台账、独立 Reviewer、Review 文件、全量 E2E、视觉测试或部署证据；高风险或发布审查直接记录在现有任务、PR 或 Issue 中。
 
@@ -193,6 +197,7 @@ python skills/build-standard-project/scripts/migrate_legacy_project.py \
 ```
 
 迁移器只处理已知的 1.1—1.6 生成模板；遇到自定义 `AGENTS.md` 会停止，不会覆盖项目规则。
+应用迁移后运行一次 `pnpm prepare`，即可启用仓库内的 commit 基础质量钩子。
 
 仓库自身的轻量回归测试：
 

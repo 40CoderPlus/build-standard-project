@@ -23,6 +23,8 @@ After risks are disclosed, the user owns the selected product/architecture/opera
 
 Read [project-profile.md](project-profile.md) and record considered/selected options, selection mode, rejected alternatives, and revisit triggers in `.project/standard-project.json`.
 
+Every selected architecture must include the same non-configurable engineering baseline from initialization: repository-local commit hooks for staged format/lint and Conventional Commits, one concise change record, directly affected tests, Bug regression tests, and CI/release commands appropriate to the stack. Generate these with the foundation; do not defer them until feature work or ask the user to select them as optional tooling.
+
 The bundled generator supports only user-approved `modular-monolith` + `container-generic`:
 
 ```text

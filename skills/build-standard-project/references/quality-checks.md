@@ -9,6 +9,8 @@ The bundled pnpm/TypeScript generator always exposes the core commands and adds 
 ```text
 pnpm format
 pnpm format:check
+pnpm commit:check
+pnpm commit:message -- path/to/COMMIT_EDITMSG
 pnpm lint
 pnpm lint:fix
 pnpm typecheck
@@ -35,6 +37,7 @@ pnpm quality:full
 Adapt these concepts to another approved stack instead of forcing pnpm onto it. Do not create empty scripts that pretend an unavailable check passed.
 
 - For local Routine work, run the directly affected test file first, such as `pnpm test -- path/to/affected.test.ts`. Do not replace it with an aggregate command merely because that command is easier to remember.
+- `prepare` installs repository-local Git hooks. Before each commit, `commit:check` formats-checks and lints only relevant staged files; `commit:message` enforces a Conventional Commit subject. These hooks intentionally omit type checks, tests, builds, and E2E so the baseline stays fast.
 - `quality:fast` runs the unit-test suite for CI or broader unit feedback. It is a fallback, not the default local command for a scoped Bug.
 - `change:check` is the lightweight traceability check: a product or behavior-source change must add a `docs/changes.md` entry, change a directly affected test, and cite that test. A bug entry must cite its regression test.
 - `quality` is the ordinary repository baseline: formatting, lint, types, unit tests, contracts, migration structure, and build.

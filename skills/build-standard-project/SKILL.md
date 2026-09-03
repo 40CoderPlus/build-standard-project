@@ -5,7 +5,7 @@ description: Initialize or standardize a project only on explicit init requests,
 
 # Build Standard Project
 
-Version: **1.8.2**
+Version: **1.8.3**
 
 ## Route
 

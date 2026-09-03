@@ -45,6 +45,11 @@ FULL_SCRIPTS = [
     "security:audit:toolchain",
     "deploy:preflight",
 ]
+HOOK_PREPARE = "node scripts/quality/install-git-hooks.mjs"
+COMMIT_SCRIPTS = {
+    "commit:check": "node scripts/quality/check-staged.mjs",
+    "commit:message": "node scripts/quality/check-commit-message.mjs",
+}
 
 
 def fail(message: str) -> None:
@@ -123,6 +128,20 @@ def migrate_package(package: dict[str, Any]) -> tuple[dict[str, Any], list[str]]
     if scripts.get("change:check") != "node scripts/quality/check-change-record.mjs":
         scripts["change:check"] = "node scripts/quality/check-change-record.mjs"
         changes.append("add the lightweight change/test linkage check")
+
+    prepare = scripts.get("prepare")
+    if isinstance(prepare, str) and prepare.strip():
+        if HOOK_PREPARE not in prepare:
+            scripts["prepare"] = f"{prepare} && {HOOK_PREPARE}"
+            changes.append("install repository-local Git hooks after the existing prepare step")
+    else:
+        scripts["prepare"] = HOOK_PREPARE
+        changes.append("install repository-local Git hooks during dependency setup")
+
+    for name, command in COMMIT_SCRIPTS.items():
+        if name not in scripts:
+            scripts[name] = command
+            changes.append(f"add the {name} commit-time quality command")
 
     return package, changes
 
@@ -222,6 +241,15 @@ def main() -> None:
         changes.append("add the single concise change record")
     if not (project / "scripts" / "quality" / "check-change-record.mjs").is_file():
         changes.append("add the lightweight change/test linkage script")
+    commit_gate_files = {
+        "scripts/quality/check-staged.mjs": "check-staged.mjs",
+        "scripts/quality/check-commit-message.mjs": "check-commit-message.mjs",
+        "scripts/quality/install-git-hooks.mjs": "install-git-hooks.mjs",
+        ".githooks/pre-commit": "pre-commit",
+        ".githooks/commit-msg": "commit-msg",
+    }
+    if any(not (project / relative).is_file() for relative in commit_gate_files):
+        changes.append("add fast staged-file and Conventional Commit hooks")
 
     prefix = "[APPLY]" if args.apply else "[PLAN]"
     for change in changes:
@@ -240,9 +268,13 @@ def main() -> None:
     checker_path = project / "scripts" / "quality" / "check-change-record.mjs"
     if not checker_path.is_file():
         write_text(checker_path, read_text(ASSETS / "check-change-record.mjs"))
+    for relative, asset in commit_gate_files.items():
+        target = project / relative
+        if not target.is_file():
+            write_text(target, read_text(ASSETS / asset))
 
     print("[OK] Legacy Routine controls migrated. Existing product code and archival documents were left untouched.")
-    print("[NEXT] Review the diff and run one directly affected test file; do not run Full for this migration.")
+    print("[NEXT] Run pnpm prepare once to enable the hooks, review the diff, and run one directly affected test file; do not run Full for this migration.")
 
 
 if __name__ == "__main__":

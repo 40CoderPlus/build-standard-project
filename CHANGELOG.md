@@ -1,5 +1,12 @@
 # Change record
 
+## 2026-09-03 — Normalize current-project conversation titles
+
+- Type: feature
+- Change: Add an explicit metadata-only route for renaming current-project conversations as `MMDD｜TYPE｜Topic`, using `createdAt` in `Asia/Shanghai`, one run-wide TYPE vocabulary, evidence-based topics, and title-only mutation. Installers now also deploy the Skill to Claude Code's `~/.claude/skills` or `CLAUDE_CONFIG_DIR` location in addition to Codex and shared Agent directories.
+- Tests: manual package validation passed for Skill frontmatter, PowerShell syntax, shell syntax, version consistency, and `git diff --check`. The bundled `quick_validate.py` could not run because its Python environment does not include PyYAML.
+- Source: direct request and supplied naming prompt/screenshot.
+
 ## 2026-09-03 — Add fast commit-time quality gates
 
 - Type: requirement

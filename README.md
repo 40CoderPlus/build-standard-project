@@ -2,7 +2,7 @@
 
 面向 VibeCoding 的 Codex 工程 Skill：保留必要质量底线，同时避免把普通修复和优化升级成复杂工程流程。
 
-V1.8 的核心原则：
+V1.9 的核心原则：
 
 - 普通 Bug、优化、UI 调整和重构默认走 Routine 快路径；
 - Routine 只要求最小完整改动、最终 diff 走查和最相关单元测试；
@@ -13,6 +13,7 @@ V1.8 的核心原则：
 - 基础质量只保留常规格式、Lint、类型、测试、契约、迁移和构建，不生成指纹、Git diff 哈希、需求台账校验、Agent 文案校验或机器可读 AI Review 证明。
 - 需求变更、优化和 Bug 使用一份简短的 `docs/changes.md` 记录；源码变更必须带直接相关测试，Bug 必须带回归测试，并由 CI 做轻量检查。
 - 旧项目安装新 Skill 不等于项目规则已迁移；1.1—1.6 项目提供显式迁移检查，避免遗留 `quality:full`、覆盖率、指纹和 AI Review 继续拖慢小改动。
+- 用户明确要求时，可按创建日期、固定类型词表和真实主题统一当前项目的对话标题；该模式只修改标题元数据。
 
 ## 工作模式
 
@@ -58,7 +59,7 @@ python3 "${CODEX_HOME:-$HOME/.codex}/skills/.system/skill-installer/scripts/inst
   --ref main
 ```
 
-官方 Codex Installer 只安装到 Codex 目录，并且在目标目录已存在时会停止。需要同时供 Anthropic 等兼容 Agent 使用，或升级已有安装时，使用下面的仓库安装脚本。
+官方 Codex Installer 只安装到 Codex 目录，并且在目标目录已存在时会停止。需要同时供 Claude、其他兼容 Agent 使用，或升级已有安装时，使用下面的仓库安装脚本。
 
 ### 克隆并安装或升级
 
@@ -82,9 +83,10 @@ chmod +x install.sh
 安装脚本会在升级前分别备份旧版本，并同时安装到：
 
 - Codex：`${CODEX_HOME:-~/.codex}/skills/build-standard-project`
-- Anthropic 等兼容 Agent：`${AGENTS_HOME:-~/.agents}/skills/build-standard-project`
+- Claude Code：`${CLAUDE_CONFIG_DIR:-~/.claude}/skills/build-standard-project`
+- 其他兼容 Agent：`${AGENTS_HOME:-~/.agents}/skills/build-standard-project`
 
-Windows 下默认对应 `%USERPROFILE%\.codex\skills` 和 `%USERPROFILE%\.agents\skills`。重新启动相应 Agent 或开启新任务后生效。
+Windows 下默认对应 `%USERPROFILE%\.codex\skills`、`%USERPROFILE%\.claude\skills` 和 `%USERPROFILE%\.agents\skills`。重新启动相应 Agent 或开启新任务后生效。
 
 ## 使用方式
 
@@ -105,6 +107,18 @@ Windows 下默认对应 `%USERPROFILE%\.codex\skills` 和 `%USERPROFILE%\.agents
 ```text
 使用 $build-standard-project 审计当前仓库，只报告问题和证据。
 ```
+
+统一当前项目的对话标题（TYPE 默认使用英文代码）：
+
+这是“手动触发、自动执行”的能力：Skill 不会在后台定时运行，也不会在每次新建对话后自行改名；用户需要在当前任务中提出一次整理请求。触发后 Agent 会自动批量处理，无需逐个手工修改。
+
+```text
+使用 $build-standard-project 统一当前项目的对话标题，只改标题，不改项目名或其他状态。
+```
+
+标题规则为 `MMDD｜TYPE｜Topic`。日期严格取对话的 `createdAt` 并转换到 `Asia/Shanghai`；主题不明确时保留原名，不猜测。若明确要求中文 TYPE，则本次统一使用“功能 / 设计 / 修复 / 优化 / 发布 / 探索 / 文档 / 研究”。
+
+Codex 在提供项目对话列表、创建时间和标题修改能力时可直接完成批量改名。Claude Code 或其他兼容 Agent 可以加载同一 Skill，但能否实际改名取决于宿主是否提供等价的会话管理能力。
 
 如果希望已有工程长期采用 Routine 规则，可将 Skill 生成的精简规则合并进工程根目录 `AGENTS.md`。
 
@@ -201,7 +215,7 @@ git pull --ff-only
 
 ## 当前版本
 
-`1.8.3`
+`1.9.0`
 
 本版本的需求与验证记录见 [CHANGELOG.md](CHANGELOG.md)。
 

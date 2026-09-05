@@ -58,7 +58,7 @@ foreach ($location in $locations) {
     }
 
     $installedTargets[$target] = $true
-    Write-Host "Installed build-standard-project 1.9.0 for $($location.Name) to $target"
+    Write-Host "Installed build-standard-project 2.0.0 for $($location.Name) to $target"
     if ($backup) {
         Write-Host "Previous installation backed up to $backup"
     }

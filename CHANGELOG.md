@@ -1,5 +1,12 @@
 # Change record
 
+## 2026-09-06 — 2.0.0: Proportionate validation and model-neutral workflows
+
+- Type: optimization
+- Change: Clarify rule ownership and remove the duplicate Development AI workflow. Non-bug source changes may cite existing tracked tests with an `existing coverage:` explanation; bug fixes still require a changed regression test, and all cited tests must exist. Synchronize generated rules and references, allow focused UI verification when narrower checks are insufficient, preserve accepted constraints during mid-task corrections, and add an opt-in representative-task evaluation method. Update the package version and both READMEs; existing installations and generated projects are not automatically migrated.
+- Tests: `tests/test_change_tracking.py` (3 tests, including 9 existing-coverage subcases and deleted-test rejection) and `tests/test_legacy_upgrade.py` (3 tests) passed. Skill quick validation could not run because the bundled Python lacks PyYAML; frontmatter, local reference links, and version consistency were checked directly instead. Cross-model task evaluation has not been run.
+- Source: Direct request to implement the reviewed engineering improvements after the GPT-6 Astra upgrade.
+
 ## 2026-09-03 — Normalize current-project conversation titles
 
 - Type: feature

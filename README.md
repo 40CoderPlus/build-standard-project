@@ -1,45 +1,83 @@
 # build-standard-project
 
-面向 VibeCoding 的 Codex 工程 Skill：保留必要质量底线，同时避免把普通修复和优化升级成复杂工程流程。
+[简体中文](README.md) | [English](README.en.md)
 
-V1.9 的核心原则：
+面向 AI 辅助开发的工程 Skill，帮助 Codex、Claude Code 和其他兼容 Agent 建立项目基础，并在后续开发中遵循一致的工程规则。
 
-- 普通 Bug、优化、UI 调整和重构默认走 Routine 快路径；
-- Routine 只要求最小完整改动、最终 diff 走查和最相关单元测试；
-- 只有明确的初始化、标准化或重建请求才走完整 Init；
-- 技术与部署方案根据产品特性选择，默认推荐最小充分方案；
-- Redis、队列、微服务、Kubernetes、多地域等复杂组件必须由用户明确选择；
-- 额外流程和验证必须有实际风险依据，效率本身也是质量的一部分。
-- 基础质量只保留常规格式、Lint、类型、测试、契约、迁移和构建，不生成指纹、Git diff 哈希、需求台账校验、Agent 文案校验或机器可读 AI Review 证明。
-- 需求变更、优化和 Bug 使用一份简短的 `docs/changes.md` 记录；源码变更必须带直接相关测试，Bug 必须带回归测试，并由 CI 做轻量检查。
-- 旧项目安装新 Skill 不等于项目规则已迁移；1.1—1.6 项目提供显式迁移检查，避免遗留 `quality:full`、覆盖率、指纹和 AI Review 继续拖慢小改动。
-- 用户明确要求时，可按创建日期、固定类型词表和真实主题统一当前项目的对话标题；该模式只修改标题元数据。
+它覆盖两个主要场景：**初始化时，根据产品需求选择合适的技术与部署方案；日常开发时，以最小完整改动、相关测试和简短变更记录完成任务。**
 
-## 工作模式
+当前版本：`1.9.0` · [变更记录](CHANGELOG.md) · [MIT License](LICENSE)
 
-- **Routine（默认）**：Bug、优化、UI 修改、局部重构。
-- **Init / Adopt**：仅在用户明确要求初始化、标准化、接入或重建时执行完整流程。
-- **Audit**：只报告优先级明确的问题，不主动修改。
-- **Release**：发布或高风险变更按受影响边界增加验证，不重复 Init。
+## 你可以用它做什么
 
-## 仓库结构
+| 场景 | 提供的能力 | 触发方式 |
+| --- | --- | --- |
+| 日常开发 | 修复 Bug、优化、调整 UI、局部重构，按影响范围执行检查 | 默认使用 Routine 模式 |
+| 初始化或接入项目 | 比较技术与部署方案，建立目录、工程规则、测试和 CI 基础 | 明确要求初始化、标准化、接入或重建 |
+| 仓库审计 | 按优先级报告问题和证据 | 明确要求审计，默认不修改 |
+| 发布准备 | 针对发布及高风险边界补充验证 | 明确要求发布相关工作 |
+| 旧项目迁移 | 清理 1.1—1.6 生成项目中的旧版工程规则 | 明确要求迁移，支持先查看计划 |
+| 对话整理 | 按统一格式批量修改当前项目的对话标题 | 手动触发，依赖 Agent 宿主能力 |
 
-```text
-skills/build-standard-project/
-  SKILL.md
-  agents/openai.yaml
-  assets/
-  references/
-  scripts/scaffold_project.py
-install.ps1
-install.sh
+Skill 由 Agent 读取并执行。安装后不会自动初始化已有项目，也不会在后台定时运行。仓库内另附项目生成器和旧版迁移脚本，供相应流程使用。
+
+## 安装与上手
+
+### 1. 安装 Skill
+
+先克隆仓库，再运行对应系统的安装脚本。需要本机具备 Git；脚本会同时安装到 Codex、Claude Code 和共享 Agent 技能目录，已有安装会分别备份。
+
+**Windows PowerShell**
+
+```powershell
+git clone https://github.com/40CoderPlus/build-standard-project.git
+cd build-standard-project
+.\install.ps1
 ```
 
-真正的 Skill 位于 `skills/build-standard-project/`。仓库根目录只保存安装和开源说明。
+**macOS / Linux**
 
-## 安装到 Codex 与其他 Agent
+```bash
+git clone https://github.com/40CoderPlus/build-standard-project.git
+cd build-standard-project
+chmod +x install.sh
+./install.sh
+```
 
-### 使用 Codex Skill Installer
+| 使用方 | 默认安装位置 | 自定义根目录环境变量 |
+| --- | --- | --- |
+| Codex | `~/.codex/skills/build-standard-project` | `CODEX_HOME` |
+| Claude Code | `~/.claude/skills/build-standard-project` | `CLAUDE_CONFIG_DIR` |
+| 其他兼容 Agent | `~/.agents/skills/build-standard-project` | `AGENTS_HOME` |
+
+Windows 下 `~` 对应 `%USERPROFILE%`。安装后重新启动相应 Agent 或开启新任务。
+
+### 2. 在项目中使用
+
+在目标项目的任务中明确调用，例如：
+
+```text
+使用 $build-standard-project 修复登录失败的问题。
+```
+
+Skill 被调用后，普通开发任务默认走 Routine，无需每次补充“不要初始化”。初始化、审计和其他操作的示例见下文。
+
+没有原生 Skill 发现能力的 Agent，可以先读取本仓库的 `skills/build-standard-project/SKILL.md`，再按当前任务读取其中引用的文档。
+
+### 3. 更新已安装的 Skill
+
+在克隆的仓库中执行：
+
+```bash
+git pull --ff-only
+```
+
+然后重新运行 `install.ps1` 或 `install.sh`，并开启新任务。**更新 Skill 不会迁移已有项目中的工程规则**；旧版生成项目的处理方式见[旧项目迁移](#旧项目迁移)。
+
+<details>
+<summary>其他安装方式：仅使用 Codex Skill Installer</summary>
+
+也可以使用本机 Codex 自带的安装器，需要 Python 和对应安装器脚本。此方式只安装到 Codex，目标目录已存在时会停止；升级已有安装请使用上面的仓库脚本。
 
 Windows PowerShell：
 
@@ -59,117 +97,67 @@ python3 "${CODEX_HOME:-$HOME/.codex}/skills/.system/skill-installer/scripts/inst
   --ref main
 ```
 
-官方 Codex Installer 只安装到 Codex 目录，并且在目标目录已存在时会停止。需要同时供 Claude、其他兼容 Agent 使用，或升级已有安装时，使用下面的仓库安装脚本。
+</details>
 
-### 克隆并安装或升级
+## 日常开发：按改动范围完成任务
 
-Windows PowerShell：
+Routine 适用于 Bug 修复、优化、UI 调整和局部重构，基本流程是：
 
-```powershell
-git clone https://github.com/40CoderPlus/build-standard-project.git
-cd build-standard-project
-.\install.ps1
-```
+1. 读取相关代码、测试和项目约束。
+2. 在现有变更记录中简述需求、优化或 Bug；生成项目统一使用 `docs/changes.md`。
+3. 完成最小完整改动，补充直接相关测试；Bug 修复需要回归测试。
+4. 运行受影响的测试文件，走查最终 diff；只有检查失败或后续修改影响结果时才重跑。
 
-macOS / Linux：
-
-```bash
-git clone https://github.com/40CoderPlus/build-standard-project.git
-cd build-standard-project
-chmod +x install.sh
-./install.sh
-```
-
-安装脚本会在升级前分别备份旧版本，并同时安装到：
-
-- Codex：`${CODEX_HOME:-~/.codex}/skills/build-standard-project`
-- Claude Code：`${CLAUDE_CONFIG_DIR:-~/.claude}/skills/build-standard-project`
-- 其他兼容 Agent：`${AGENTS_HOME:-~/.agents}/skills/build-standard-project`
-
-Windows 下默认对应 `%USERPROFILE%\.codex\skills`、`%USERPROFILE%\.claude\skills` 和 `%USERPROFILE%\.agents\skills`。重新启动相应 Agent 或开启新任务后生效。
-
-## 使用方式
-
-普通任务直接描述需求即可；Skill 被调用后默认就是 Routine，无需反复强调“不执行 Init”。如需显式调用：
-
-```text
-使用 $build-standard-project 修复这个 Bug。
-```
-
-初始化或标准化项目时明确说明：
-
-```text
-使用 $build-standard-project 初始化这个项目。先根据产品特性提供最小充分方案和一个有理由的升级方案，由我选择后再生成。
-```
-
-审计但不修改：
-
-```text
-使用 $build-standard-project 审计当前仓库，只报告问题和证据。
-```
-
-统一当前项目的对话标题（TYPE 默认使用英文代码）：
-
-这是“手动触发、自动执行”的能力：Skill 不会在后台定时运行，也不会在每次新建对话后自行改名；用户需要在当前任务中提出一次整理请求。触发后 Agent 会自动批量处理，无需逐个手工修改。
-
-```text
-使用 $build-standard-project 统一当前项目的对话标题，只改标题，不改项目名或其他状态。
-```
-
-标题规则为 `MMDD｜TYPE｜Topic`。日期严格取对话的 `createdAt` 并转换到 `Asia/Shanghai`；主题不明确时保留原名，不猜测。若明确要求中文 TYPE，则本次统一使用“功能 / 设计 / 修复 / 优化 / 发布 / 探索 / 文档 / 研究”。
-
-Codex 在提供项目对话列表、创建时间和标题修改能力时可直接完成批量改名。Claude Code 或其他兼容 Agent 可以加载同一 Skill，但能否实际改名取决于宿主是否提供等价的会话管理能力。
-
-如果希望已有工程长期采用 Routine 规则，可将 Skill 生成的精简规则合并进工程根目录 `AGENTS.md`。
-
-## 技术与部署选择
-
-Skill 不再假定所有项目使用同一套架构。Init 时会根据产品规模、团队、流量、数据、合规、预算和运维能力给出选择：
-
-1. 最小充分方案；
-2. 一个确有产品理由的升级方案；
-3. 只有需求已经证明必要时才提供复杂方案。
-
-用户确认前不会引入复杂基础设施。说明主要成本、限制和风险后，由用户决定产品、架构与运维取舍。
-
-无论选择哪种架构，初始化都会直接建立不可关闭的工程基础：commit 格式与暂存文件格式/Lint 门禁、唯一变更记录、直接相关测试、Bug 回归测试，以及与技术栈匹配的 CI/发布命令。这些基础不作为可选架构问题反复询问。
-
-## 质量策略
-
-Routine 的固定底线：
-
-1. 检查相关代码和约束；
-2. 在唯一的变更记录中写清需求变更、优化或 Bug；
-3. 完成最小完整改动，并补直接相关测试；
-4. Bug 用能复现原问题的回归测试锁住；
-5. 走查最终 diff，运行最相关的测试；
-6. 只重跑失败或被后续修改影响的检查。
-
-本地 Routine 必须优先运行单个受影响测试文件，例如：
+例如，使用 pnpm 的项目优先运行单个相关测试文件：
 
 ```bash
 pnpm test -- path/to/affected.test.ts
 ```
 
-普通小改动不运行 `quality`、`quality:full`、覆盖率、E2E、视觉、部署或独立 Review。`quality:fast` 是 CI 或确实需要整套单元测试反馈时的后备命令。
+各类检查按用途分开：
 
-每次 commit 前只检查相关暂存文件的格式与 Lint，并校验 Conventional Commit 信息。类型检查、测试、构建和 E2E 仍按改动风险执行，不塞进 commit 钩子。
+| 时机 | 检查范围 |
+| --- | --- |
+| 日常小改动 | 直接相关测试和最终 diff；不默认运行全量质量检查、覆盖率、E2E 或视觉测试 |
+| 提交代码 | 相关暂存文件的格式与 Lint，以及 Conventional Commit 提交信息 |
+| CI | 执行与技术栈匹配的检查；对行为源码变更轻量检查变更记录与相关测试的关联 |
+| 高风险变更或发布 | 根据安全、权限、资金、隐私、迁移、公共契约、基础设施或部署边界增加验证 |
 
-安全、隐私、资金、权限、不可逆数据、迁移、公共契约、共享基础设施和发布边界按实际风险增加验证。普通任务只保留一份简短变更记录和直接相关测试，不要求平行需求台账、独立 Reviewer、Review 文件、全量 E2E、视觉测试或部署证据；高风险或发布审查直接记录在现有任务、PR 或 Issue 中。
+`quality:fast` 用于 CI 或确实需要整套单元测试反馈的场景。类型检查、构建和 E2E 不塞进提交钩子；普通任务也不要求独立 Reviewer、Review 文件或部署证据。
 
-## 给其他 AI Agent 使用
+## 初始化：先选择方案，再建立工程基础
 
-没有原生 Skill 发现能力的 Agent，可以先读取：
+明确提出初始化或标准化请求即可：
 
 ```text
-skills/build-standard-project/SKILL.md
+使用 $build-standard-project 初始化这个项目。先根据产品需求推荐技术与部署方案，说明成本和限制，由我选择后再生成。
 ```
 
-然后只读取该文件针对当前模式明确引用的 references。不要为 Routine 加载完整 Init 或 Release 流程。
+### 如何选择方案
 
-## 生成项目
+Agent 会结合产品规模、团队、流量、数据、预算和运维约束，推荐最小充分方案；有实际需求依据时，再提供升级选项。用户作出选择，或明确授权 Agent 决定后，才进入生成步骤。
 
-用户完成 Init 选择后，底层生成命令为：
+Redis、队列、独立 API、微服务、Kubernetes、多地域等组件只有在需求支持、且用户明确选择后才引入。已确认的决策会记录下来，没有新证据时不反复讨论。
+
+### 初始化会交付什么
+
+| 产物 | 用途 |
+| --- | --- |
+| `.project/standard-project.json` | 记录技术与部署选择、替代方案及重新评估的条件 |
+| `AGENTS.md` | 项目统一工程规则与日常开发流程 |
+| 应用代码与模块目录 | 按所选架构建立边界，不创建无用途的应用或基础设施包 |
+| `docs/product/`、`docs/architecture/`、`docs/engineering/` | 说明产品约束、架构与工程使用方式 |
+| `docs/changes.md` | 统一记录需求变更、优化、Bug 与相关测试 |
+| 工具配置与 Git 钩子 | 建立格式、Lint、类型、测试、构建和提交规范 |
+| CI、部署配置与环境变量示例 | 支持所选技术栈的验证、部署检查和恢复说明 |
+
+提交检查、变更记录、直接相关测试、Bug 回归测试和 CI/发布命令属于初始化基础，随所选方案一起建立。初始化还需要实现并验证一条有代表性的完整业务流程，生成目录本身不代表产品已经完成。
+
+### 内置生成器的范围
+
+**当前内置生成器只支持 `modular-monolith`（模块化单体）与 `container-generic`（通用容器部署）的组合。** Skill 可以指导其他方案，但需要 Agent 针对该方案实现，或扩展生成器。
+
+一般通过 Agent 完成初始化。需要直接调用脚本时，先参考[配置说明](skills/build-standard-project/references/project-profile.md)和[示例配置](skills/build-standard-project/assets/project-profile.example.json)，准备已经确认的配置，再从本仓库根目录运行：
 
 ```bash
 python skills/build-standard-project/scripts/scaffold_project.py \
@@ -177,18 +165,46 @@ python skills/build-standard-project/scripts/scaffold_project.py \
   --output path/to/project
 ```
 
-生成器只支持其明确声明的架构与部署模式；其他选择应使用针对该方案的实现，而不是强行套用复杂模板。
+示例配置中的选型处于待确认状态，不能直接当作已批准方案。生成后，在目标项目中运行：
 
-### 升级 1.1—1.6 生成的旧项目
+```bash
+pnpm install
+pnpm format
+pnpm quality
+```
 
-安装或升级 Skill 只更新 Codex 的 Skill 目录，不会自动重写已有项目里的 `AGENTS.md`、`package.json` 和 CI。先只检查迁移计划：
+详细流程见[初始化工作流](skills/build-standard-project/references/init-workflow.md)和[生成交付要求](skills/build-standard-project/references/generation-contract.md)。
+
+## 其他使用场景
+
+### 审计与发布
+
+只检查仓库并报告问题：
+
+```text
+使用 $build-standard-project 审计当前仓库，只报告问题和证据。
+```
+
+为发布做准备：
+
+```text
+使用 $build-standard-project 检查本次发布涉及的风险和验证缺口。
+```
+
+审计默认不修改文件。发布流程围绕受影响边界开展验证，不重新执行初始化；详细规则见[质量检查](skills/build-standard-project/references/quality-checks.md)和[部署说明](skills/build-standard-project/references/deployment-system.md)。
+
+### 旧项目迁移
+
+适用于 **1.1—1.6 版本生成的项目**。如果更新 Skill 后，小改动仍被旧版 `quality:full`、覆盖率、指纹或 AI Review 规则拖慢，需要单独迁移项目内的 `AGENTS.md`、`package.json` 和 CI。
+
+先查看迁移计划，此命令不修改项目：
 
 ```bash
 python skills/build-standard-project/scripts/migrate_legacy_project.py \
   --project path/to/existing-project
 ```
 
-确认识别的是旧版生成规则后，再显式应用：
+确认后应用迁移：
 
 ```bash
 python skills/build-standard-project/scripts/migrate_legacy_project.py \
@@ -196,29 +212,45 @@ python skills/build-standard-project/scripts/migrate_legacy_project.py \
   --apply
 ```
 
-迁移器只处理已知的 1.1—1.6 生成模板；遇到自定义 `AGENTS.md` 会停止，不会覆盖项目规则。
-应用迁移后运行一次 `pnpm prepare`，即可启用仓库内的 commit 基础质量钩子。
+迁移器只处理已知的旧版生成模板；遇到自定义 `AGENTS.md` 会停止。应用后在目标项目运行一次 `pnpm prepare`，启用仓库内的提交检查钩子。详见[旧版迁移说明](skills/build-standard-project/references/legacy-upgrade.md)。
 
-仓库自身的轻量回归测试：
+### 统一对话标题
+
+```text
+使用 $build-standard-project 统一当前项目的对话标题，只改标题，不改项目名或其他状态。
+```
+
+这是手动触发的批量操作，标题格式为 `MMDD｜TYPE｜Topic`，例如 `0903｜FIX｜登录失败`。
+
+- 日期取对话的 `createdAt`，转换到 `Asia/Shanghai`。
+- 类型默认使用 `FEA / DES / FIX / OPT / REL / EXP / DOC / RES`；明确要求中文时使用对应中文类型。
+- 缺少创建时间或无法判断主题时保留原名。
+- 宿主必须支持读取当前项目的对话、创建时间和单独修改标题，否则无法执行。
+
+完整规则见[对话标题说明](skills/build-standard-project/references/conversation-titles.md)。
+
+## 仓库与维护
+
+真正的 Skill 位于 `skills/build-standard-project/`；根目录保存安装脚本、使用说明和仓库自身的测试。
+
+```text
+skills/build-standard-project/
+  SKILL.md                 # Agent 入口与任务路由
+  agents/openai.yaml       # Agent 元数据
+  references/              # 按场景读取的详细规则
+  assets/                  # 配置示例与工程模板
+  scripts/
+    scaffold_project.py    # 项目生成器
+    migrate_legacy_project.py # 旧版项目迁移器
+install.ps1                # Windows 安装脚本
+install.sh                 # macOS / Linux 安装脚本
+tests/                     # 本工具的回归测试
+```
+
+开发本工具时，在仓库根目录运行轻量回归测试：
 
 ```bash
 python -m unittest discover -s tests -v
 ```
 
-## 更新
-
-```bash
-git pull --ff-only
-```
-
-然后重新运行 `install.ps1` 或 `install.sh`。旧安装会自动备份。
-
-## 当前版本
-
-`1.9.0`
-
-本版本的需求与验证记录见 [CHANGELOG.md](CHANGELOG.md)。
-
-## License
-
-MIT
+版本与历史变更见 [VERSION](VERSION) 和 [CHANGELOG.md](CHANGELOG.md)。

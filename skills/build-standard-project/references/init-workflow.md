@@ -38,6 +38,6 @@ For another selected option, generate it directly or extend the generator; never
 
 ## 4. Verify once
 
-Implement one representative vertical slice, add its concise record and affected test as described in [product-change-notes.md](product-change-notes.md), then run `pnpm quality` once after implementation stabilizes. Add only checks justified by the slice's affected boundaries. Use [independent-review.md](independent-review.md) only for release, high-risk boundaries, or an explicit request.
+Implement one representative vertical slice with observable acceptance criteria: successful user outcome, relevant failure state, and permission boundary when applicable. For a UI slice, inspect the actual affected screen and interaction when feasible; report unavailable verification explicitly. Add its concise record and affected test as described in [product-change-notes.md](product-change-notes.md), then run `pnpm quality` once after implementation stabilizes. Add only checks justified by the slice's affected boundaries. Use [independent-review.md](independent-review.md) only for release, high-risk boundaries, or an explicit request.
 
 Report the selected option, delivered foundation, checks, material findings/gaps, and required user action. Omit process narration.

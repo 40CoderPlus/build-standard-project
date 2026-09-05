@@ -7,7 +7,7 @@
 - Reuse existing modules and conventions before adding dependencies or abstractions.
 - Record every requirement change, optimization, bug fix, or behavior-affecting maintenance change in the repository's single change record.
 - Update directly affected contracts, migrations, docs, and tests with behavior changes.
-- Add or update a directly affected test for behavior-source changes. Every bug fix requires a regression test that fails for the reported behavior before the fix and passes afterward.
+- Use directly affected tests for behavior-source changes, adding or updating them for uncovered behavior. Non-bug changes may cite existing coverage as defined in [product-change-notes.md](product-change-notes.md). Every bug fix requires an added or updated regression test that fails for the reported behavior before the fix and passes afterward.
 - Do not stage, commit, push, deploy, rewrite history, or perform other external/destructive actions without authorization.
 - Never fabricate a passing check or weaken a test merely to make it green.
 

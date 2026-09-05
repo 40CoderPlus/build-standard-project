@@ -51,7 +51,7 @@ The foundation is accepted when:
 7. secrets, private data, provider keys, and server infrastructure cannot enter the browser bundle;
 8. `quality` and the selected deployment preflight are executable;
 9. dependency installation activates repository-local commit hooks for staged format/lint and Conventional Commit subjects;
-10. `change:check` enforces a new change entry plus a cited changed test for behavior-source changes, and bug entries cite a regression test;
+10. `change:check` enforces a new change entry plus a cited changed test or explained existing coverage for non-bug behavior-source changes; bug entries cite a changed regression test, and all cited tests exist;
 11. exact validation evidence is reported.
 
 The first initialization sequence is `pnpm install`, `pnpm format`, then `pnpm quality`. Formatting is an explicit one-time normalization step because the deterministic generator does not depend on an already-installed JavaScript toolchain.

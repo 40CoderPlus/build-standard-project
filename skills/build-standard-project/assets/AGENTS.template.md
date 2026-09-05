@@ -9,7 +9,7 @@ The Routine path is the default for scoped fixes, optimizations, UI changes, and
 ## Execute
 
 - Treat efficiency as part of quality. Do safe in-scope work without an upfront plan, repeated confirmation, or step narration. Batch one question only when a decision materially changes behavior, architecture, cost, or risk.
-- Preserve unrelated work and make the smallest coherent change.
+- Preserve unrelated work and make the smallest coherent change. Incorporate mid-task corrections while retaining the original goal, accepted constraints, and valid completed work; redo only affected work. For a long task, save a short continuation note in the existing task/handoff only when needed. Use available host tools; model selection alone does not enable tools or authorize subagents.
 - Append one concise entry to `docs/changes.md` for every requirement change, optimization, bug fix, or behavior-affecting maintenance change. Keep this as the only change ledger.
 - `.project/standard-project.json` records the user's technology/deployment choice. Prefer minimum sufficient design; never add complex infrastructure without explicit user selection. After material risks are disclosed, the user owns the approved product/architecture/operations tradeoff.
 - Read task-relevant product/engineering documents only when the affected boundary requires them. Do not invent product rules.
@@ -19,8 +19,8 @@ The Routine path is the default for scoped fixes, optimizations, UI changes, and
 ## Validate
 
 - Git hooks are the commit-time baseline: staged source and document files must pass their configured formatter/linter, and commit subjects must follow Conventional Commits. Keep these hooks fast; type checks, tests, builds, browser checks, and release checks stay on the risk-based paths below.
-- Every behavior-affecting source change must add or update a directly affected test and cite that test in `docs/changes.md`. Every bug fix must add a regression test that reproduces the failure before the fix and passes after it.
-- Routine: run the directly affected test file, for example `pnpm test -- path/to/affected.test.ts`, then review the final diff. Do not run `pnpm quality`, `pnpm quality:full`, coverage, E2E, visual, deployment, or independent-review checks for an ordinary scoped change. Use `pnpm quality:fast` only when no narrower unit-test command exists or broader unit feedback is explicitly needed.
+- Every behavior-affecting source change must cite directly affected tests in `docs/changes.md`. Add or update tests for uncovered behavior; non-bug changes may cite unchanged tests with `existing coverage: <scenario and why no test change is needed>`. Every bug fix must add or update a regression test that reproduces the failure before the fix and passes after it. Documentation-only changes need no new test.
+- Routine: run the directly affected test file, for example `pnpm test -- path/to/affected.test.ts`, then review the final diff. Do not run `pnpm quality`, `pnpm quality:full`, coverage, deployment, or independent-review checks for an ordinary scoped change. Add targeted browser, accessibility, or visual evidence only when changed rendering or interaction cannot be adequately verified by narrower checks, or the user asks; this does not trigger Full. Use `pnpm quality:fast` only when no narrower unit-test command exists or broader unit feedback is explicitly needed.
 - CI runs `pnpm change:check` and the unit-test suite. Add other checks only for an affected risk or explicit request.
 - Full: run directly affected integration, browser, security, migration, and deployment checks. Request an independent review only when risk or policy warrants it.
 - Do not rerun unaffected successful checks or fabricate evidence. Keep human review optional unless explicitly required.

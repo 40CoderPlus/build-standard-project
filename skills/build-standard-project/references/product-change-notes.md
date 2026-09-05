@@ -13,7 +13,7 @@ Each entry captures only:
 - directly affected test file paths;
 - an existing issue or pull-request link when one exists.
 
-Requirement changes and optimizations need a directly affected test when source behavior changes. Every bug fix needs a regression test that fails for the reported behavior before the fix and passes afterward. If a request changes only product documentation and no executable behavior, the record is still required but a new test is not.
+Source behavior changes need directly affected test coverage. Add or update tests for uncovered behavior. Non-bug changes may cite existing tests with `existing coverage: <scenario and why no test change is needed>` in the Tests field. Run the cited tests and report actual results. Every bug fix needs an added or updated regression test that fails for the reported behavior before the fix and passes afterward. If a request changes only product documentation and no executable behavior, the record is still required but a new test is not.
 
 Require explicit user or product-owner direction when the change alters positioning, money, legal/privacy duties, irreversible data semantics, external authority, product-AI prohibited uses, or another locked invariant.
 
@@ -26,4 +26,4 @@ Require explicit user or product-owner direction when the change alters position
 5. Run the regression/affected test and proportionate checks.
 6. For release or high-risk work, request the focused independent review described in [independent-review.md](independent-review.md).
 
-The bundled generator adds one lightweight CI check: behavior-affecting source changes must modify `docs/changes.md`, modify at least one test, and cite that changed test in the new entry. It does not map every file, hash diffs, or infer whether the written explanation is truthful; final-diff review still owns semantic correctness.
+The bundled generator adds one lightweight CI check: behavior-affecting source changes must modify `docs/changes.md` and cite a changed test, or existing tracked tests with an `existing coverage:` explanation for non-bug changes. Bug entries must cite a changed regression test. All cited test files must exist; stage new tests before running the check locally. It does not map every file, hash diffs, or infer whether the written explanation is truthful; final-diff review still owns semantic correctness.

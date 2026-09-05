@@ -39,7 +39,7 @@ Adapt these concepts to another approved stack instead of forcing pnpm onto it. 
 - For local Routine work, run the directly affected test file first, such as `pnpm test -- path/to/affected.test.ts`. Do not replace it with an aggregate command merely because that command is easier to remember.
 - `prepare` installs repository-local Git hooks. Before each commit, `commit:check` formats-checks and lints only relevant staged files; `commit:message` enforces a Conventional Commit subject. These hooks intentionally omit type checks, tests, builds, and E2E so the baseline stays fast.
 - `quality:fast` runs the unit-test suite for CI or broader unit feedback. It is a fallback, not the default local command for a scoped Bug.
-- `change:check` is the lightweight traceability check: a product or behavior-source change must add a `docs/changes.md` entry, change a directly affected test, and cite that test. A bug entry must cite its regression test.
+- `change:check` is the lightweight traceability check: a product or behavior-source change must add a `docs/changes.md` entry. Source changes cite changed tests or, for non-bug changes, existing tracked tests with an `existing coverage:` explanation. Bug entries must cite an added or updated regression test. All cited test files must exist. This verifies linkage, not test execution or coverage quality.
 - `quality` is the ordinary repository baseline: formatting, lint, types, unit tests, contracts, migration structure, and build.
 - `quality:full` adds configured integration/browser/accessibility/visual checks, migration drift, dependency audits, and deployment preflight. Use it for release or affected high-risk boundaries, not ordinary edits.
 
@@ -47,7 +47,7 @@ Policy-specific security and supply-chain evidence belongs to the selected hosti
 
 ## Execution budget
 
-- Routine: run the directly affected unit-test file once and review the final diff. Do not run `quality`, `quality:full`, coverage, E2E, visual, deployment, or independent review for an ordinary scoped change.
+- Routine: run the directly affected unit-test file once and review the final diff. Do not run `quality`, `quality:full`, coverage, deployment, or independent review for an ordinary scoped change. A targeted UI check below does not trigger Full.
 - Add a static, integration, browser, migration, or security check only when the changed boundary warrants it.
 - After a failure, fix and rerun that check. Do not restart unrelated successful checks.
 - Run an aggregate command once after the implementation is stable when it adds useful coverage.
@@ -57,7 +57,7 @@ Policy-specific security and supply-chain evidence belongs to the selected hosti
 
 | Boundary | Add when affected |
 | --- | --- |
-| UI/component | type/unit, accessibility, responsive or E2E evidence for changed states |
+| UI/component | Use type/unit checks for logic; add targeted browser, accessibility, responsive or visual evidence when changed layout, focus, keyboard behavior or interaction cannot be adequately verified by narrower checks. Inspect the affected state, not the whole suite. |
 | API/public contract | contract compatibility, integration, consumer behavior |
 | Authorization/state | negative authorization, state invariants, concurrency or audit tests |
 | Money/entitlements | rounding/conservation, idempotency, reversal and reconciliation |

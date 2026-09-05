@@ -6,7 +6,7 @@ An engineering Skill for AI-assisted development. It helps Codex, Claude Code, a
 
 It covers two main workflows: **choose technology and deployment options that fit the product during initialization, then handle everyday development through focused changes, relevant tests, and a concise change record.**
 
-Current version: `1.9.0` · [Change history](CHANGELOG.md) · [MIT License](LICENSE)
+Current version: `2.0.0` · [Change history](CHANGELOG.md) · [MIT License](LICENSE)
 
 ## What you can do with it
 
@@ -105,7 +105,7 @@ Routine covers bug fixes, optimizations, UI adjustments, and local refactoring:
 
 1. Read the relevant code, tests, and project constraints.
 2. Add a concise description of the requirement change, optimization, or bug to the existing change record. Generated projects use `docs/changes.md`.
-3. Make the smallest coherent change and add or update directly affected tests. Bug fixes require regression tests.
+3. Make the smallest coherent change and add or update tests for uncovered behavior. Non-bug changes may cite existing tests with an `existing coverage:` explanation; bug fixes require added or updated regression tests.
 4. Run the affected test file and review the final diff. Rerun checks only when they fail or subsequent edits invalidate the result.
 
 For example, a project using pnpm should prefer the relevant test file:

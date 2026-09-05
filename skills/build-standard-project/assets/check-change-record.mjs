@@ -1,4 +1,5 @@
 import { execFileSync } from 'node:child_process';
+import { statSync } from 'node:fs';
 
 const arguments_ = process.argv.slice(2);
 const baseFlag = arguments_.indexOf('--base');
@@ -53,6 +54,9 @@ const entries = addedLines
 if (entries.length === 0) throw new Error('Add a dated entry to docs/changes.md.');
 
 const changedTests = new Set(changedLiveFiles.filter(isTest));
+const trackedTests = new Set(
+  git('ls-files').split(/\r?\n/u).filter(Boolean).map(normalize).filter(isTest),
+);
 for (const entry of entries) {
   const title = entry.match(/^## (.+)$/mu)?.[1] ?? 'untitled entry';
   const type = entry.match(/^- Type:\s*(requirement|optimization|bug|maintenance)\s*$/mu)?.[1];
@@ -68,8 +72,21 @@ for (const entry of entries) {
   if (type === 'bug' && citedTests.length === 0) {
     throw new Error(`Bug entry "${title}" must cite its regression test.`);
   }
-  if (sourceFiles.length > 0 && !citedTests.some((path) => changedTests.has(path))) {
+  for (const path of citedTests) {
+    if (!trackedTests.has(path) || !statSync(path, { throwIfNoEntry: false })?.isFile()) {
+      throw new Error(`Change entry "${title}" cites a missing or untracked test: ${path}`);
+    }
+  }
+  if (type === 'bug' && !citedTests.some((path) => changedTests.has(path))) {
     throw new Error(`Change entry "${title}" must cite a test changed in this diff.`);
+  }
+  if (sourceFiles.length > 0 && !citedTests.some((path) => changedTests.has(path))) {
+    const existingCoverage = /\bexisting coverage:\s*\S.+/iu.test(tests);
+    if (citedTests.length === 0 || !existingCoverage) {
+      throw new Error(
+        `Change entry "${title}" must cite a changed test or explain existing coverage: <scenario and why no test change is needed>.`,
+      );
+    }
   }
 }
 

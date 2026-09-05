@@ -104,6 +104,57 @@ class ChangeTrackingTest(unittest.TestCase):
         self.assertIn("Do not run `pnpm quality`, `pnpm quality:full`", agents)
 
     @unittest.skipUnless(shutil.which("git") and shutil.which("node"), "requires git and node")
+    def test_checker_accepts_explained_existing_coverage_only_for_non_bugs(self) -> None:
+        def run(*command: str, check: bool = True) -> subprocess.CompletedProcess:
+            return subprocess.run(
+                command, cwd=self.output, check=check, capture_output=True,
+                encoding="utf-8", errors="replace",
+            )
+
+        run("git", "init")
+        run("git", "config", "user.email", "validation@example.invalid")
+        run("git", "config", "user.name", "Validation")
+        run("git", "add", ".")
+        run("git", "commit", "-m", "baseline")
+        source = self.output / "packages/domain/src/index.ts"
+        source.write_text(source.read_text(encoding="utf-8") + "\n// Preserve invariant behavior.\n", encoding="utf-8")
+        record = self.output / "docs/changes.md"
+        baseline_record = record.read_text(encoding="utf-8")
+        test_path = "packages/domain/test/invariant.test.ts"
+        explanation = "existing coverage: invariant success and failure behavior is unchanged"
+
+        cases = [
+            ("optimization", f"`{test_path}` — {explanation}", True),
+            ("maintenance", f"`{test_path}` — {explanation}", True),
+            ("requirement", f"`{test_path}` — {explanation}", True),
+            ("optimization", f"`{test_path}`", False),
+            ("optimization", f"`{test_path}` — existing coverage:", False),
+            ("optimization", f"`packages/domain/test/missing.test.ts` — {explanation}", False),
+            ("optimization", f"`packages/domain/test` — {explanation}", False),
+            ("optimization", f"`not applicable` — {explanation}", False),
+            ("bug", f"`{test_path}` — {explanation}", False),
+        ]
+        for kind, evidence, accepted in cases:
+            with self.subTest(kind=kind, evidence=evidence):
+                record.write_text(
+                    baseline_record + f"\n## 2026-09-06 — Preserve invariants\n\n"
+                    f"- Type: {kind}\n- Change: Preserve existing behavior.\n- Tests: {evidence}\n",
+                    encoding="utf-8",
+                )
+                result = run("node", "scripts/quality/check-change-record.mjs", "--base", "HEAD", check=False)
+                self.assertEqual(result.returncode == 0, accepted, result.stderr)
+
+        record.write_text(
+            baseline_record + "\n## 2026-09-06 — Preserve invariants\n\n"
+            f"- Type: optimization\n- Change: Preserve existing behavior.\n- Tests: `{test_path}` — {explanation}\n",
+            encoding="utf-8",
+        )
+        (self.output / test_path).unlink()
+        missing = run("node", "scripts/quality/check-change-record.mjs", "--base", "HEAD", check=False)
+        self.assertNotEqual(missing.returncode, 0)
+        self.assertIn("missing or untracked test", missing.stderr)
+
+    @unittest.skipUnless(shutil.which("git") and shutil.which("node"), "requires git and node")
     def test_checker_requires_record_and_changed_regression_test(self) -> None:
         def run(*command: str, check: bool = True) -> subprocess.CompletedProcess:
             return subprocess.run(

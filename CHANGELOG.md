@@ -1,5 +1,12 @@
 # Change record
 
+## 2026-10-05 — 2.1.0: Independent UI skills and coordinated design work
+
+- Type: requirement
+- Change: Add an optional UI route, a focused collaboration reference, and self-contained generated project rules. Choose one primary designer per stage, reuse canonical design conventions, retain engineering checks and Routine's fast path, and keep read-only review read-only. Document six upstream design skills and Codex/Claude Code/shared-Agent compatibility in both READMEs. Keep oil-ui outside the project and coordinated dependencies. Installers now retain upgrades outside skill discovery to avoid duplicate active skills.
+- Tests: All 8 regression tests passed, including three-host installation, independent-skill preservation, backup retention outside discovery, shared-root deduplication, and existing generator/migration behavior. The live installation check verified 21 standalone skill entries, 490 copied files, matching engineering Skill copies, local links, and UI/UX search. PowerShell syntax and `git diff --check` passed. Skill quick validation could not run because the bundled Python lacks PyYAML; frontmatter and version consistency were checked directly instead. Claude sessions and Unix installer execution were not exercised on this Windows host.
+- Source: Direct request for independent multi-agent-compatible installation, project-external oil-ui, recommended design coordination, and README acknowledgements.
+
 ## 2026-09-06 — 2.0.0: Proportionate validation and model-neutral workflows
 
 - Type: optimization

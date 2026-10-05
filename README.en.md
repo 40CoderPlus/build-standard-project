@@ -6,7 +6,7 @@ An engineering Skill for AI-assisted development. It helps Codex, Claude Code, a
 
 It covers two main workflows: **choose technology and deployment options that fit the product during initialization, then handle everyday development through focused changes, relevant tests, and a concise change record.**
 
-Current version: `2.0.0` · [Change history](CHANGELOG.md) · [MIT License](LICENSE)
+Current version: `2.1.0` · [Change history](CHANGELOG.md) · [MIT License](LICENSE)
 
 ## What you can do with it
 
@@ -50,7 +50,7 @@ chmod +x install.sh
 | Claude Code | `~/.claude/skills/build-standard-project` | `CLAUDE_CONFIG_DIR` |
 | Other compatible agents | `~/.agents/skills/build-standard-project` | `AGENTS_HOME` |
 
-On Windows, `~` corresponds to `%USERPROFILE%`. Restart the agent or start a new task after installation.
+On Windows, `~` corresponds to `%USERPROFILE%`. Restart the agent or start a new task after installation. Upgrade backups live under each root's `skill-backups/`, outside skill discovery, so backups do not appear as duplicate skills. Old backup directories left under `skills/` can be moved there for safekeeping.
 
 ### 2. Use it in your project
 
@@ -98,6 +98,46 @@ python3 "${CODEX_HOME:-$HOME/.codex}/skills/.system/skill-installer/scripts/inst
 ```
 
 </details>
+
+## Independent design skills and compatible agents
+
+The UI workflow coordinates optional, independently installed skills by task and stage. Their code is not bundled in this repository, the build-standard-project skill, or generated business projects. Invoking the engineering skill does not download them. These are upstream acknowledgements, not an affiliation or endorsement; upstream licenses remain applicable.
+
+| Independent skill | Author / upstream | Role |
+| --- | --- | --- |
+| `frontend-design` | Anthropic · [anthropics/skills](https://github.com/anthropics/skills/tree/main/skills/frontend-design) | Product interface design and implementation |
+| `web-design-guidelines` | Vercel Labs · [vercel-labs/agent-skills](https://github.com/vercel-labs/agent-skills/tree/main/skills/web-design-guidelines) | Review affected interface code |
+| `emil-design-eng` | Emil Kowalski · [emilkowalski/skills](https://github.com/emilkowalski/skills/tree/main/skills/emil-design-eng) | Interaction feedback, animation decisions, and component detail |
+| `impeccable` | Paul Bakaus · [pbakaus/impeccable](https://github.com/pbakaus/impeccable) | Focused diagnosis, typography, layout, and polish |
+| `ui-ux-pro-max` | NextLevelBuilder · [ui-ux-pro-max-skill](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill) | Palette, typography, chart, platform, and UX reference search |
+| `design-taste-frontend` | Leonxlnx · [taste-skill](https://github.com/Leonxlnx/taste-skill/tree/main/skills/taste-skill) | Alternative lead for marketing sites and portfolios; current v2 is experimental and excludes complex dashboards/product flows |
+
+**Compatible agents:** Codex, Anthropic Claude Code, and other agents that discover or read Agent Skills. Use user-level skill directories: `~/.codex/skills` or a supported shared directory for Codex, `~/.claude/skills` for Claude Code, and `~/.agents/skills` for compatible agents. Discovery, invocation syntax, image inspection, browsers, and independent review depend on the host; textual compatibility does not imply identical tool capabilities.
+
+For standalone installation, use the [Skills CLI](https://github.com/vercel-labs/skills). `--global` keeps installation outside the project; select your actual agents during interactive installation. Check existing versions and customizations before overwriting:
+
+```bash
+npx skills add anthropics/skills --skill frontend-design --global
+npx skills add vercel-labs/agent-skills --skill web-design-guidelines --global
+npx skills add emilkowalski/skills --skill emil-design-eng --global
+npx skills add Leonxlnx/taste-skill --skill design-taste-frontend --global
+```
+
+UI/UX Pro Max needs its complete `data/`, `scripts/`, and `references/` directories. Resolve search commands against the actual installed skill directory, not a Claude plugin variable that may not exist in Codex. Impeccable needs its complete host-specific package, including `reference/` and the launcher. Optional edit hooks, live browser mode, and its downloaded engine are separate capabilities, not automatically enabled by compatibility. Follow their linked upstream installation/update instructions and choose user-level destinations outside this repository.
+
+Select one lead design skill per stage and add only the specialist needed for a concrete gap. User constraints, engineering rules, the existing stack, and approved project design conventions take precedence. Reuse the canonical design specification; create one `DESIGN.md` only when a new direction needs it and no equivalent exists. Engineering tests and release checks remain on the current mode. Hosts can auto-select additional skills: coordination is not hard isolation. See [UI workflow](skills/build-standard-project/references/ui-workflow.md).
+
+```text
+Use build-standard-project to improve the orders page. Preserve the stack, brand, and behavior. Choose one primary design skill using the existing design specification, add polish or motion help only for concrete gaps, and inspect the affected desktop/mobile views.
+```
+
+### oil-ui: standalone, outside the project
+
+[oil-ui](https://github.com/oil-oil/oil-ui) can also be installed user-wide, but is **outside this engineering skill's routing and dependencies**. Do not copy it into this repository or generated projects. Invoke it separately when explicitly selected for visual exploration. Its use-triggered version checks, automatic updates, and Pro recommendation follow upstream behavior.
+
+```bash
+npx skills add oil-oil/oil-ui --skill oil-ui --global
+```
 
 ## Everyday development: keep work scoped to the change
 

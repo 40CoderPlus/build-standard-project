@@ -6,7 +6,7 @@
 
 它覆盖两个主要场景：**初始化时，根据产品需求选择合适的技术与部署方案；日常开发时，以最小完整改动、相关测试和简短变更记录完成任务。**
 
-当前版本：`2.0.0` · [变更记录](CHANGELOG.md) · [MIT License](LICENSE)
+当前版本：`2.1.0` · [变更记录](CHANGELOG.md) · [MIT License](LICENSE)
 
 ## 你可以用它做什么
 
@@ -50,7 +50,7 @@ chmod +x install.sh
 | Claude Code | `~/.claude/skills/build-standard-project` | `CLAUDE_CONFIG_DIR` |
 | 其他兼容 Agent | `~/.agents/skills/build-standard-project` | `AGENTS_HOME` |
 
-Windows 下 `~` 对应 `%USERPROFILE%`。安装后重新启动相应 Agent 或开启新任务。
+Windows 下 `~` 对应 `%USERPROFILE%`。安装后重新启动相应 Agent 或开启新任务。更新备份保存在各根目录的 `skill-backups/`，位于技能发现目录之外，避免备份被识别为同名技能；旧版本遗留在 `skills/` 下的备份可移到该位置保存。
 
 ### 2. 在项目中使用
 
@@ -98,6 +98,48 @@ python3 "${CODEX_HOME:-$HOME/.codex}/skills/.system/skill-installer/scripts/inst
 ```
 
 </details>
+
+## 独立设计技能与兼容智能体
+
+本项目提供 UI 协作路由，按任务和阶段读取独立安装的设计技能。它们是可选工具，不会被复制进本仓库、`skills/build-standard-project/` 或生成的业务项目；运行工程 Skill 也不会自动下载它们。下面是引用来源声明，不表示上游作者参与或背书本项目，各技能保留自己的许可。
+
+| 独立技能 | 作者 / 上游来源 | 在本项目中的分工 |
+| --- | --- | --- |
+| `frontend-design` | Anthropic · [anthropics/skills](https://github.com/anthropics/skills/tree/main/skills/frontend-design) | 产品界面设计与实现 |
+| `web-design-guidelines` | Vercel Labs · [vercel-labs/agent-skills](https://github.com/vercel-labs/agent-skills/tree/main/skills/web-design-guidelines) | 受影响界面代码的规范检查 |
+| `emil-design-eng` | Emil Kowalski · [emilkowalski/skills](https://github.com/emilkowalski/skills/tree/main/skills/emil-design-eng) | 操作反馈、动画决策和组件细节 |
+| `impeccable` | Paul Bakaus · [pbakaus/impeccable](https://github.com/pbakaus/impeccable) | 诊断、排版、布局和精修，按需选择子命令 |
+| `ui-ux-pro-max` | NextLevelBuilder · [ui-ux-pro-max-skill](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill) | 配色、字体、图表、平台及 UX 参考检索 |
+| `design-taste-frontend` | Leonxlnx · [taste-skill](https://github.com/Leonxlnx/taste-skill/tree/main/skills/taste-skill) | 官网、落地页和作品集的可选主设计路线；当前 v2 为实验版，不用于复杂后台流程 |
+
+**兼容智能体：**Codex、Anthropic Claude Code，以及能够发现或读取 Agent Skills 的其他兼容智能体。建议安装到用户级技能目录：Codex 使用 `~/.codex/skills` 或宿主支持的共享目录，Claude Code 使用 `~/.claude/skills`，其他兼容智能体使用 `~/.agents/skills`。宿主的自动发现、命令语法、看图、浏览器和独立评审能力不同，支持文本技能不代表全部工具能力相同。
+
+可以用 [Skills CLI](https://github.com/vercel-labs/skills) 单独安装，`--global` 明确指定项目外安装；交互安装时选择实际使用的智能体。已有技能先检查版本与自定义内容，避免直接覆盖：
+
+```bash
+npx skills add anthropics/skills --skill frontend-design --global
+npx skills add vercel-labs/agent-skills --skill web-design-guidelines --global
+npx skills add emilkowalski/skills --skill emil-design-eng --global
+npx skills add Leonxlnx/taste-skill --skill design-taste-frontend --global
+```
+
+UI/UX Pro Max 需要连同 `data/`、`scripts/`、`references/` 安装完整目录，并把搜索命令解析到实际 Skill 安装路径，不要只复制 `SKILL.md` 或假设 Claude 插件环境变量在 Codex 中存在。Impeccable 应使用对应宿主的完整包（包括 `reference/` 和启动器）；自动钩子、浏览器实时模式与按需下载的引擎是独立能力，不因声明兼容就自动启用。两者的安装与更新方式请按上表的上游说明执行；选择用户级目录，不把安装位置设为本仓库。
+
+**协作规则：**每个阶段只选一个主设计技能，缺少参考时才检索，发现交互问题时才增加动效专家。用户要求、工程规则、项目技术栈和已确认的设计规范优先；已有规范继续复用，没有规范且新方向确实需要时才建立一份 `DESIGN.md`。实际测试和发布检查仍由工程流程管理。宿主可能自行选择其他技能，因此这是协调规则，不是强制隔离。详见 [UI 工作流](skills/build-standard-project/references/ui-workflow.md)。
+
+例如：
+
+```text
+使用 build-standard-project 优化订单页。保留现有技术栈、品牌和业务行为，按现有设计规范选择一个主设计技能；只在具体问题需要时调用精修或动效技能，检查实际手机和桌面画面。
+```
+
+### oil-ui：项目外独立使用
+
+[oil-ui](https://github.com/oil-oil/oil-ui) 也可安装到用户级目录，但**不属于本工程 Skill 的协作路由或依赖**，不放入本仓库或生成项目。需要探索风格时由用户单独指定使用；其使用触发的版本检查、自动更新和 Pro 推荐按上游规则运行。
+
+```bash
+npx skills add oil-oil/oil-ui --skill oil-ui --global
+```
 
 ## 日常开发：按改动范围完成任务
 

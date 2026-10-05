@@ -42,8 +42,10 @@ foreach ($location in $locations) {
     New-Item -ItemType Directory -Path $skillsDirectory -Force | Out-Null
     $backup = $null
     if (Test-Path -LiteralPath $target) {
-        $timestamp = Get-Date -Format 'yyyyMMdd-HHmmss'
-        $backup = "$target.backup-$timestamp"
+        $timestamp = Get-Date -Format 'yyyyMMdd-HHmmss-fff'
+        $backupDirectory = [IO.Path]::GetFullPath((Join-Path $location.Root 'skill-backups'))
+        New-Item -ItemType Directory -Path $backupDirectory -Force | Out-Null
+        $backup = Join-Path $backupDirectory "build-standard-project-$timestamp"
         Move-Item -LiteralPath $target -Destination $backup
     }
 
@@ -58,7 +60,7 @@ foreach ($location in $locations) {
     }
 
     $installedTargets[$target] = $true
-    Write-Host "Installed build-standard-project 2.0.0 for $($location.Name) to $target"
+    Write-Host "Installed build-standard-project 2.1.0 for $($location.Name) to $target"
     if ($backup) {
         Write-Host "Previous installation backed up to $backup"
     }

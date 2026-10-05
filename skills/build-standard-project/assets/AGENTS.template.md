@@ -16,6 +16,13 @@ The Routine path is the default for scoped fixes, optimizations, UI changes, and
 - Keep browser code away from databases/secrets, validate external input, enforce authorization server-side, and protect real secrets/private data.
 - Do not perform destructive Git/filesystem actions, commits, pushes, deployments, or external writes without authorization.
 
+## UI collaboration
+
+- Small color, spacing, and copy edits stay on Routine. For substantive UI work, choose one installed primary design skill per stage: `frontend-design` for product interfaces, or `design-taste-frontend` for marketing/portfolio surfaces within its installed scope. Use `ui-ux-pro-max` only for needed references, `impeccable` for focused diagnosis/polish, `emil-design-eng` for interaction details, and `web-design-guidelines` for affected-file review; do not load every skill for each task.
+- User constraints, these repository instructions, approved product behavior, existing stack, and project design tokens/components take precedence over specialist defaults. Reuse the canonical design document; when a new direction warrants a specification and none exists, keep one `DESIGN.md` consistent with runtime tokens and pass it between stages.
+- Skills are independently installed optional tools. Missing skills do not block work or authorize installation, new dependencies, paid services, hooks, or subagents. Automatic selection is host-dependent; explicit user selection wins. Review-only requests remain read-only.
+- Keep engineering checks on the current mode. Inspect affected real viewports and states when rendering/interaction cannot be verified by narrower checks; report unavailable visual verification. Do not turn local UI edits into initialization, broad audits, or repeated aesthetic reviews.
+
 ## Validate
 
 - Git hooks are the commit-time baseline: staged source and document files must pass their configured formatter/linter, and commit subjects must follow Conventional Commits. Keep these hooks fast; type checks, tests, builds, browser checks, and release checks stay on the risk-based paths below.

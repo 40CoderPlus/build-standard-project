@@ -24,7 +24,12 @@ install_skill() {
   BACKUP=''
   if [ -e "$TARGET" ]; then
     TIMESTAMP=$(date '+%Y%m%d-%H%M%S')
-    BACKUP="$TARGET.backup-$TIMESTAMP"
+    BACKUP_DIRECTORY="$INSTALL_BASE/skill-backups"
+    mkdir -p "$BACKUP_DIRECTORY"
+    BACKUP="$BACKUP_DIRECTORY/build-standard-project-$TIMESTAMP"
+    if [ -e "$BACKUP" ]; then
+      BACKUP="$BACKUP-$$"
+    fi
     mv "$TARGET" "$BACKUP"
   fi
 
@@ -35,7 +40,7 @@ install_skill() {
     exit 1
   fi
 
-  printf '%s\n' "Installed build-standard-project 2.0.0 for $INSTALL_NAME to $TARGET"
+  printf '%s\n' "Installed build-standard-project 2.1.0 for $INSTALL_NAME to $TARGET"
   if [ -n "$BACKUP" ]; then
     printf '%s\n' "Previous installation backed up to $BACKUP"
   fi

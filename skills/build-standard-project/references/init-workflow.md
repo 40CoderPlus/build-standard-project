@@ -38,6 +38,8 @@ For another selected option, generate it directly or extend the generator; never
 
 ## 4. Verify once
 
+For a UI product, use [ui-workflow.md](ui-workflow.md) for the representative screen: choose one independently installed primary design skill, preserve approved product/stack constraints, and retain one canonical design specification and its corresponding runtime tokens. UI skills are optional; do not install them into the generated project or block initialization when they are absent.
+
 Implement one representative vertical slice with observable acceptance criteria: successful user outcome, relevant failure state, and permission boundary when applicable. For a UI slice, inspect the actual affected screen and interaction when feasible; report unavailable verification explicitly. Add its concise record and affected test as described in [product-change-notes.md](product-change-notes.md), then run `pnpm quality` once after implementation stabilizes. Add only checks justified by the slice's affected boundaries. Use [independent-review.md](independent-review.md) only for release, high-risk boundaries, or an explicit request.
 
 Report the selected option, delivered foundation, checks, material findings/gaps, and required user action. Omit process narration.
